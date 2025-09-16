@@ -9,7 +9,17 @@ app_license = "mit"
 # ------------------
 
 # required_apps = []
-
+fixtures = [
+   
+    {
+        "dt": "Client Script",
+        "filters": [["module", "=", "Recruitment App"]]
+    },
+     
+    "Server Script",
+    "Custom Field",
+    "Property Setter"
+]
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
 # 	{
