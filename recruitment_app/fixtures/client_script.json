@@ -1,1 +1,13 @@
-[]
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Opportunity",
+  "enabled": 1,
+  "modified": "2025-09-17 11:30:42.862092",
+  "module": "Recruitment App",
+  "name": "Opportunity to Job Opening",
+  "script": "frappe.ui.form.on('Opportunity', {\r\n    refresh: function(frm) {\r\n        if (!frm.is_new()) {\r\n            frm.add_custom_button(__('Create Job Opening'), function() {\r\n                frappe.new_doc('Job Opening', {\r\n                custom_opportunity: frm.doc.name  // or use frm.doc.name if that's the Lead ID\r\n                });\r\n            });\r\n        }\r\n    }\r\n});",
+  "view": "Form"
+ }
+]
