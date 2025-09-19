@@ -36,5 +36,24 @@
   "reference_doctype": "Lead",
   "script": "# Do nothing here, this overrides the default behavior\r\ndoc.flags.ignore_mandatory = True\r\n",
   "script_type": "DocType Event"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 1,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "Before Insert",
+  "enable_rate_limit": 0,
+  "event_frequency": "All",
+  "modified": "2025-09-19 13:35:18.752237",
+  "module": "Recruitment App",
+  "name": "autofill job openings",
+  "rate_limit_count": 5,
+  "rate_limit_seconds": 86400,
+  "reference_doctype": "Job Applicant",
+  "script": "def before_insert(doc, method=None):\r\n    # Try different possible params\r\n    job_from_url = frappe.form_dict.get(\"job\") or frappe.form_dict.get(\"job_title\")\r\n\r\n    if job_from_url:\r\n        doc.job_title = job_from_url\r\n    else:\r\n        # fallback: pick first open job\r\n        default_job = frappe.db.get_value(\"Job Opening\", {\"status\": \"Open\"}, \"name\")\r\n        if default_job:\r\n            doc.job_opening = default_job\r\n",
+  "script_type": "DocType Event"
  }
 ]
