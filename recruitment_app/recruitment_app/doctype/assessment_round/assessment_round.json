@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:round_name",
+ "creation": "2025-09-19 15:59:16.117311",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "round_name",
+  "assessment_type",
+  "assessor",
+  "column_break_rlff",
+  "expected_average_rating",
+  "section_break_ysce",
+  "expected_skillset",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "round_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Round Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "assessment_type",
+   "fieldtype": "Link",
+   "label": "Assessment Type",
+   "options": "assessment type"
+  },
+  {
+   "fieldname": "assessor",
+   "fieldtype": "Table MultiSelect",
+   "label": "Assessor",
+   "options": "Interviewer"
+  },
+  {
+   "fieldname": "column_break_rlff",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expected_average_rating",
+   "fieldtype": "Rating",
+   "label": "Expected Average Rating"
+  },
+  {
+   "fieldname": "section_break_ysce",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "expected_skillset",
+   "fieldtype": "Table",
+   "label": "Expected Skillset",
+   "options": "Expected Skill Set",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Assessment Round",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-19 17:13:49.302415",
+ "modified_by": "Administrator",
+ "module": "Recruitment App",
+ "name": "Assessment Round",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

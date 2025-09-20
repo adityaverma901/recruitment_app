@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "HR-ASSESS-.YYYY.-.####",
+ "creation": "2025-09-19 15:05:36.761487",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_f7bn",
+  "amended_from",
+  "assessment_round",
+  "job_applicant",
+  "job_opening",
+  "designation",
+  "resume_link",
+  "column_break_bvjd",
+  "status",
+  "scheduled_on",
+  "from_time",
+  "to_time",
+  "assessment_link",
+  "section_break_plqm",
+  "interviewers"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_f7bn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Assessment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "assessment_round",
+   "fieldtype": "Link",
+   "label": "Assessment Round",
+   "options": "Assessment Round" 
+  },
+  {
+   "fieldname": "job_applicant",
+   "fieldtype": "Link",
+   "label": "Job Applicant",
+   "options": "Job Applicant"
+  },
+  {
+   "fetch_from": "job_applicant.job_title",
+   "fieldname": "job_opening",
+   "fieldtype": "Link",
+   "label": "Job Opening",
+   "options": "Job Opening"
+  },
+  {
+   "fetch_from": "job_applicant.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "resume_link",
+   "fieldtype": "Data",
+   "label": "Resume link"
+  },
+  {
+   "fieldname": "column_break_bvjd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status"
+  },
+  {
+   "fieldname": "scheduled_on",
+   "fieldtype": "Date",
+   "label": "Scheduled On"
+  },
+  {
+   "fieldname": "from_time",
+   "fieldtype": "Time",
+   "label": "From Time"
+  },
+  {
+   "fieldname": "to_time",
+   "fieldtype": "Time",
+   "label": "To Time"
+  },
+  {
+   "fieldname": "assessment_link",
+   "fieldtype": "Data",
+   "label": "Assessment Link"
+  },
+  {
+   "fieldname": "section_break_plqm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "interviewers",
+   "fieldtype": "Table",
+   "label": "Interviewers",
+   "options": "Interview Detail"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-19 16:35:06.810978",
+ "modified_by": "Administrator",
+ "module": "Recruitment App",
+ "name": "Assessment",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
