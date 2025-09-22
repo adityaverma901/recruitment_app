@@ -152,6 +152,6 @@ def search_contacts(search_term=None):
     except Exception as e:
         return {
             "status": "error",
-            "message": f"An error occurred: {str(e)}",
+            "message": f"0 Contacts found with this ",
             "data": []
         }
