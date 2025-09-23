@@ -20,7 +20,11 @@ fixtures = [
     "Custom Field",
     "Property Setter",
     "Web Form",
-    "Role Profile"
+    "Role Profile",
+    {
+        "doctype": "DocType",
+        "filters": {"name": "Quotation Item"}
+    }
 ]
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
