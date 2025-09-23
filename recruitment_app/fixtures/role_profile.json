@@ -147,5 +147,23 @@
     "role": "Sales User"
    }
   ]
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2025-09-23 12:15:12.763243",
+  "name": "Customer Relationship Manager",
+  "role_profile": "Customer Relationship Manager",
+  "roles": [
+   {
+    "role": "Employee"
+   },
+   {
+    "role": "Sales Manager"
+   },
+   {
+    "role": "System Manager"
+   }
+  ]
  }
 ]
