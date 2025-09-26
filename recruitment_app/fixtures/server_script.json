@@ -131,5 +131,24 @@
   "reference_doctype": "Opportunity",
   "script": "# update custom_assigned_to_ with first assigned user\r\nassigned_users = frappe.get_all(\r\n    \"ToDo\",\r\n    filters={\r\n        \"reference_type\": \"Opportunity\",\r\n        \"reference_name\": doc.name,\r\n        \"status\": \"Open\"\r\n    },\r\n    fields=[\"allocated_to\"],\r\n    limit=1\r\n)\r\n\r\nif assigned_users:\r\n    doc.db_set(\"custom_assigned_to_\", assigned_users[0].allocated_to)\r\n",
   "script_type": "DocType Event"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "After Save",
+  "enable_rate_limit": 0,
+  "event_frequency": "All",
+  "modified": "2025-09-26 14:31:35.479653",
+  "module": "Recruitment App",
+  "name": "staffing plan to todo",
+  "rate_limit_count": 5,
+  "rate_limit_seconds": 86400,
+  "reference_doctype": "Staffing Plan",
+  "script": "# Server Script for Staffing Plan\r\n# Document Events: After Save\r\n# Document Type: Staffing Plan\r\n\r\nif doc.custom_assign_to:\r\n    # Check if ToDo already exists to avoid duplicates\r\n    existing_todo = frappe.db.exists(\"ToDo\", {\r\n        \"reference_type\": \"Staffing Plan\",\r\n        \"reference_name\": doc.name,\r\n        \"allocated_to\": doc.custom_assign_to,\r\n        \"status\": [\"!=\", \"Cancelled\"]\r\n    })\r\n    \r\n    if not existing_todo:\r\n        try:\r\n            # Create new ToDo with required fields\r\n            todo = frappe.get_doc({\r\n                \"doctype\": \"ToDo\",\r\n                \"allocated_to\": doc.custom_assign_to,\r\n                \"reference_type\": \"Staffing Plan\",\r\n                \"reference_name\": doc.name,\r\n                \"description\": f\"Review and work on Staffing Plan: {doc.name} for Company: {doc.company or 'N/A'}\",\r\n                \"priority\": \"Medium\",\r\n                \"status\": \"Open\",\r\n                \"date\": doc.from_date or frappe.utils.today(),\r\n                \"assigned_by\": frappe.session.user\r\n            })\r\n            \r\n            # Insert the ToDo\r\n            todo.insert(ignore_permissions=True)\r\n            \r\n            frappe.msgprint(f\"ToDo created for user: {doc.custom_assign_to}\")\r\n            \r\n        except Exception as e:\r\n            frappe.log_error(f\"Error creating ToDo for Staffing Plan {doc.name}: {str(e)}\")\r\n            frappe.throw(f\"Failed to create ToDo: {str(e)}\")",
+  "script_type": "DocType Event"
  }
 ]
