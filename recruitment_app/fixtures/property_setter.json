@@ -3518,5 +3518,53 @@
   "property_type": "Check",
   "row_name": null,
   "value": "1"
+ },
+ {
+  "default_value": null,
+  "doc_type": "Staffing Plan",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocType",
+  "field_name": null,
+  "is_system_generated": 0,
+  "modified": "2025-09-26 10:53:55.892291",
+  "module": null,
+  "name": "Staffing Plan-main-naming_rule",
+  "property": "naming_rule",
+  "property_type": "Data",
+  "row_name": null,
+  "value": "Expression"
+ },
+ {
+  "default_value": null,
+  "doc_type": "Staffing Plan",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocType",
+  "field_name": null,
+  "is_system_generated": 0,
+  "modified": "2025-09-26 10:53:56.197026",
+  "module": null,
+  "name": "Staffing Plan-main-autoname",
+  "property": "autoname",
+  "property_type": "Data",
+  "row_name": null,
+  "value": "format:Staffing-Plan-for:{company_name}-{DD}-{MM}-{YYYY}"
+ },
+ {
+  "default_value": null,
+  "doc_type": "Staffing Plan",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "department",
+  "is_system_generated": 1,
+  "modified": "2025-09-26 10:58:40.044289",
+  "module": null,
+  "name": "Staffing Plan-department-options",
+  "property": "options",
+  "property_type": "Link",
+  "row_name": null,
+  "value": "Industry Type"
  }
 ]
