@@ -38,7 +38,7 @@ def search_lead(search_term=None):
                 OR l.custom_phone_number LIKE %s
                 OR l.custom_email_address LIKE %s
             )
-                        AND l.custom_stage IN ('Contract', 'Onboarded','Follow-Up / Relationship Management')
+            AND l.custom_stage IN ('Contract', 'Onboarded','Follow-Up / Relationship Management')
 
             ORDER BY l.creation DESC
             LIMIT 50
