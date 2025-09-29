@@ -3710,5 +3710,21 @@
   "property_type": "Data",
   "row_name": null,
   "value": "format:JB-{company}-{YYYY}{MM}{YY}-{custom_time}"
+ },
+ {
+  "default_value": null,
+  "doc_type": "Job Opening",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "location",
+  "is_system_generated": 1,
+  "modified": "2025-09-29 10:56:58.377161",
+  "module": null,
+  "name": "Job Opening-location-options",
+  "property": "options",
+  "property_type": "Link",
+  "row_name": null,
+  "value": "Cities"
  }
 ]
