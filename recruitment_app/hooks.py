@@ -26,6 +26,12 @@ fixtures = [
         "filters": {"name": "Quotation Item"}
     }
 ]
+doc_events = {
+    "Job Applicant": {
+        "validate": "recruitment_app.uniqueness_in_jobapp.validate_job_applicant"
+    }
+}
+
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
 # 	{
