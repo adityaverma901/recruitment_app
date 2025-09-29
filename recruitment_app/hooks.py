@@ -31,6 +31,9 @@ doc_events = {
         "validate": "recruitment_app.uniqueness_in_jobapp.validate_job_applicant"
     }
 }
+override_doctype_class = {
+    "Company": "recruitment_app.unique_abbr.CustomCompany"
+}
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
