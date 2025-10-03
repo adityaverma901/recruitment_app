@@ -3831,12 +3831,12 @@
   "doctype_or_field": "DocField",
   "field_name": "status",
   "is_system_generated": 1,
-  "modified": "2025-09-30 14:56:54.483576",
+  "modified": "2025-10-03 10:29:46.511802",
   "module": null,
   "name": "Job Applicant-status-options",
   "property": "options",
   "property_type": "Select",
   "row_name": null,
-  "value": "Open\nTagged\nShortlisted\nAssessment Stage\nInterview Stage\nClosed\nRejected\nHired"
+  "value": "Open\nTagged\nShortlisted\nAssessment Stage\nInterview Stage\nOffered\nOffer Rejected\nRejected\nJoined"
  }
 ]
