@@ -174,6 +174,55 @@ def get_recruiter_dashboard_data(email=None):
 
 
 @frappe.whitelist(allow_guest=False)
+def get_recruiter_dashboard_only_email(email=None):
+    """
+    Fetch all recruiter dashboard data in a single API call
+    """
+    if not email:
+        email = frappe.session.user
+    
+    # Fetch all required data with optimized queries
+    data = {
+        'active_clients': get_companies_by_user(email),
+        'job_openings': get_job(email),
+        'tagged_applicants': get_tagged_applicants(email),
+        'shortlisted_applicants': get_shortlisted_applicants(email),
+        'assessment_stage_applicants': get_assessment_stage_applicants(email),
+        'interview_stage_applicants': get_interview_stage_applicants(email),
+        'offered_applicants': get_offered_applicants(email),
+        'rejected_applicants': get_rejected_applicants(email),
+        'joined_applicants': get_joined_applicants(email)
+    }
+    
+    return data
+
+
+@frappe.whitelist(allow_guest=False)
+def get_recruiter_dashboard_both(email=None,company=None):
+    """
+    Fetch all recruiter dashboard data in a single API call
+    """
+    if not email:
+        email = frappe.session.user
+    
+    # Fetch all required data with optimized queries
+    data = {
+        'jobs_opening_by_company': get_jobs_by_company(email, company),
+       'tagged_applicants_by_company':get_tagged_applicants_by_company(email, company),
+        'shortlisted_applicants_by_company':get_shortlisted_applicants_by_company(email, company),
+        'assessment_stage_applicants_by_company':get_assessment_stage_applicants_by_company(email, company),
+        'interview_stage_applicants_by_company':get_interview_stage_applicants_by_company(email, company),
+        'offered_applicants_by_company':get_offered_applicants_by_company(email, company),
+        'rejected_applicants_by_company':get_rejected_applicants_by_company(email, company),
+        'joined_applicants_by_company':get_joined_applicants_by_company(email, company)
+      
+    }
+    
+    return data
+
+
+
+@frappe.whitelist(allow_guest=False)
 def get_recruiter_dashboard_data_by_company(email=None, company=None):
     """
     Master function to fetch all recruiter dashboard data filtered by company.
