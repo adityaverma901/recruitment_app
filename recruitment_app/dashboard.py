@@ -97,12 +97,14 @@ def get_monthly_metrics(email):
     return months_data
 
 def get_active_clients(email):
-    """Get count of active clients with open positions"""
+    """Get count of active clients with open positions from ToDo"""
     clients = frappe.db.sql("""
-        SELECT UNIQUE custom_company  
+        SELECT DISTINCT custom_company  
         FROM `tabToDo`
         WHERE allocated_to = %s
         AND status = 'Open'
+        AND custom_company IS NOT NULL
+        AND custom_company != ''
     """, email)
     
-    return len(clients)
+    return clients
