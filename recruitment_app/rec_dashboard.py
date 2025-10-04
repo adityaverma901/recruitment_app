@@ -4,6 +4,7 @@ from frappe import _
 @frappe.whitelist(allow_guest=False)
 def get_recruiter_dashboard_data(email=None):
     """
+    test
     Master function to fetch all recruiter dashboard data in a single API call.
     Returns all applicants grouped by status with company information.
     

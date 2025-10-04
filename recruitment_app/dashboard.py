@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=False)
 def get_recruiter_dashboard_data(email=None):
     """
     Fetch all recruiter dashboard data in a single API call
@@ -96,6 +96,9 @@ def get_monthly_metrics(email):
     
     return months_data
 
+
+
+@frappe.whitelist(allow_guest=False)
 def get_active_clients(email):
     """Get count of active clients with open positions from ToDo"""
     clients = frappe.db.sql("""
@@ -105,6 +108,6 @@ def get_active_clients(email):
         AND status = 'Open'
         AND custom_company IS NOT NULL
         AND custom_company != ''
-    """, email)
+    """, email, as_dict=True)
     
     return clients
