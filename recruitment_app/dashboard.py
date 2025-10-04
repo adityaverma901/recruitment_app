@@ -100,8 +100,8 @@ def get_active_clients(email):
     """Get count of active clients with open positions"""
     clients = frappe.db.sql("""
         SELECT DISTINCT company
-        FROM `tabJob Opening`
-        WHERE owner = %s
+        FROM `tabToDo`
+        WHERE custom_allocated_to = %s
         AND status = 'Open'
     """, email)
     
