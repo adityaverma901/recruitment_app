@@ -101,7 +101,7 @@ def get_active_clients(email):
     clients = frappe.db.sql("""
         SELECT UNIQUE custom_company  
         FROM `tabToDo`
-        WHERE custom_allocated_to = %s
+        WHERE allocated_to = %s
         AND status = 'Open'
     """, email)
     
