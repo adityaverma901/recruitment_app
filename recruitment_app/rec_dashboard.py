@@ -940,11 +940,11 @@ def get_recruiter_dashboard_data(email=None):
         - metrics: Count of applicants by status
         - summary: Overall statistics
     """
-    if not email:
-        email = frappe.session.user
+    # if not email:
+    #     email = frappe.session.user
     
-    if not email:
-        frappe.throw(_("Email is required"))
+    # if not email:
+    #     frappe.throw(_("Email is required"))
 
     # Define all statuses
     statuses = [
@@ -960,7 +960,7 @@ def get_recruiter_dashboard_data(email=None):
     # Fetch companies and jobs from ToDo
     todos = frappe.get_all(
         "ToDo",
-        filters={"allocated_to": email},
+        # filters={"allocated_to": email},
         fields=["custom_company", "custom_job_title"],
         limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="custom_company asc"
