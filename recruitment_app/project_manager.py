@@ -70,26 +70,16 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         order_by="creation desc"
     )
     
-    # Create job to company mapping - IMPORTANT: Use job_title (which is the job opening name) as key
+    # Create job to company mapping
     job_company_map = {job.name: job.company for job in job_openings}
     
-    # 3. Build filters for Job Applicant - FIXED: Apply client filter at database level
+    # 3. Build filters for Job Applicant
     applicant_filters = {
         "creation": [">=", date_filter]
     }
     
     if recruiter and recruiter != "all":
         applicant_filters["owner"] = recruiter
-    
-    # If client filter is applied, we need to filter applicants by job_title (which references Job Opening)
-    if client and client != "All":
-        # Get job openings for this client
-        client_job_titles = [job.name for job in job_openings if job.company == client]
-        if client_job_titles:
-            applicant_filters["job_title"] = ["in", client_job_titles]
-        else:
-            # If no job openings for this client, return empty applicants
-            applicant_filters["job_title"] = "___nonexistent___"
     
     # Fetch all Job Applicants
     all_applicants = frappe.get_all(
@@ -110,10 +100,14 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         order_by="creation desc"
     )
     
-    # 4. Enrich applicants with company information
+    # 4. Enrich applicants with company information and filter by client
     enriched_applicants = []
     for applicant in all_applicants:
         company = job_company_map.get(applicant.job_title, "Unknown Company")
+        
+        # Apply client filter
+        if client and client != "All" and company != client:
+            continue
             
         applicant_data = {
             "id": applicant.name,
@@ -465,3 +459,5 @@ def get_recruiters_list():
         "email": current_user,
         "full_name": frappe.get_value("User", current_user, "full_name") or current_user
     }]
+
+
