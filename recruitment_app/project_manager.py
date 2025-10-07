@@ -5,31 +5,13 @@ from frappe import _
 def get_manager_dashboard_data(client=None, recruiter=None, time_period="month"):
     """
     Master function to fetch all manager dashboard data across all recruiters.
-    No email required - aggregates data from all users.
-    
-    Args:
-        client: Filter by specific client/company (optional, default "All")
-        recruiter: Filter by specific recruiter email (optional, default "all")
-        time_period: Time period filter - "week", "month", or "quarter" (default: "month")
-    
-    Returns:
-        Dictionary containing:
-        - clients: List of unique clients
-        - recruiters: List of all recruiters with their info
-        - team_metrics: Overall team statistics
-        - funnel_data: Recruitment funnel stage counts
-        - job_status_data: Job opening status distribution
-        - monthly_trends: Time-series data for trends chart
-        - recruiter_performance: Performance metrics by recruiter
-        - applicants: Recent applicants list
-        - jobs: Job openings list
     """
     from datetime import datetime, timedelta
     
     # Calculate date filter based on time period
     date_filter = get_date_filter(time_period)
     
-    # 1. Get all active recruiters (users with "Recruiter" role)
+    # 1. Get all active recruiters
     recruiters_list = get_recruiters_list()
     
     # Format recruiters for frontend
@@ -42,10 +24,29 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         for r in recruiters_list
     ]
     
-    # 2. Build filters for Job Opening
-    job_filters = {
-        "creation": [">=", date_filter]
+    # 2. First, get ALL job openings to build proper mapping
+    all_job_filters = {"creation": [">=", date_filter]}
+    all_job_openings = frappe.get_all(
+        "Job Opening",
+        filters=all_job_filters,
+        fields=["name", "job_title", "company", "status", "creation", "owner"],
+        limit=0
+    )
+    
+    # Create comprehensive job to company mapping from ALL job openings
+    job_company_map = {job.name: job.company for job in all_job_openings}
+    job_details_map = {
+        job.name: {
+            "company": job.company,
+            "job_title": job.job_title,
+            "status": job.status,
+            "owner": job.owner
+        }
+        for job in all_job_openings
     }
+    
+    # 3. Build filters for displayed Job Openings (with client/recruiter filters)
+    job_filters = {"creation": [">=", date_filter]}
     
     if client and client != "All":
         job_filters["company"] = client
@@ -53,59 +54,67 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     if recruiter and recruiter != "all":
         job_filters["owner"] = recruiter
     
-    # Fetch Job Openings (using only fields that exist in standard Job Opening)
+    # Fetch filtered Job Openings for display
     job_openings = frappe.get_all(
         "Job Opening",
         filters=job_filters,
-        fields=[
-            "name",
-            "job_title",
-            "company",
-            "location",
-            "status",
-            "creation",
-            "owner"
-        ],
+        fields=["name", "job_title", "company", "location", "status", "creation", "owner"],
         limit=0,
         order_by="creation desc"
     )
     
-    # Create job to company mapping
-    job_company_map = {job.name: job.company for job in job_openings}
-    
-    # 3. Build filters for Job Applicant
-    applicant_filters = {
-        "creation": [">=", date_filter]
-    }
+    # 4. Build filters for Job Applicants
+    applicant_filters = {"creation": [">=", date_filter]}
     
     if recruiter and recruiter != "all":
         applicant_filters["owner"] = recruiter
     
-    # Fetch all Job Applicants
+    # If client filter is applied, we need a different approach
+    if client and client != "All":
+        # Get ALL job openings for this client (not just filtered by date/recruiter)
+        client_jobs = frappe.get_all(
+            "Job Opening",
+            filters={"company": client},
+            fields=["name"],
+            limit=0
+        )
+        client_job_titles = [job.name for job in client_jobs]
+        
+        if client_job_titles:
+            # Add client filter to applicant query
+            if "job_title" in applicant_filters:
+                # If job_title filter already exists, combine them
+                existing_titles = applicant_filters["job_title"][1] if isinstance(applicant_filters["job_title"], list) else [applicant_filters["job_title"]]
+                combined_titles = list(set(existing_titles) & set(client_job_titles))
+                if combined_titles:
+                    applicant_filters["job_title"] = ["in", combined_titles]
+                else:
+                    applicant_filters["job_title"] = "___nonexistent___"
+            else:
+                applicant_filters["job_title"] = ["in", client_job_titles]
+        else:
+            applicant_filters["job_title"] = "___nonexistent___"
+    
+    # 5. Fetch Job Applicants with proper filters
     all_applicants = frappe.get_all(
         "Job Applicant",
         filters=applicant_filters,
         fields=[
-            "name",
-            "applicant_name",
-            "email_id",
-            "phone_number",
-            "job_title",
-            "status",
-            "creation",
-            "modified",
-            "owner"
+            "name", "applicant_name", "email_id", "phone_number", 
+            "job_title", "status", "creation", "modified", "owner"
         ],
         limit=0,
         order_by="creation desc"
     )
     
-    # 4. Enrich applicants with company information and filter by client
+    # 6. Enrich applicants with company information
     enriched_applicants = []
     for applicant in all_applicants:
+        # Get company from our comprehensive mapping
         company = job_company_map.get(applicant.job_title, "Unknown Company")
         
-        # Apply client filter
+        # Only apply client filter at this stage if we didn't do it at DB level
+        # This ensures we catch any edge cases
         if client and client != "All" and company != client:
             continue
             
@@ -123,18 +132,24 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         }
         enriched_applicants.append(applicant_data)
     
-    # 5. Get unique clients from job openings
-    unique_companies = set([job.company for job in job_openings if job.company])
+    # 7. Debug logging to see what's happening
+    frappe.logger().info(f"Dashboard Debug - Client: {client}, Recruiter: {recruiter}")
+    frappe.logger().info(f"Total applicants found: {len(enriched_applicants)}")
+    for app in enriched_applicants[:5]:  # Log first 5 applicants
+        frappe.logger().info(f"Applicant: {app['name']}, Job: {app['job_title']}, Client: {app['client']}, Status: {app['status']}")
+    
+    # 8. Get unique clients from ALL job openings (not just filtered ones)
+    unique_companies = set([job.company for job in all_job_openings if job.company])
     clients = ["All"] + sorted(list(unique_companies))
     
-    # 6. Calculate all metrics and data
+    # 9. Calculate all metrics and data
     team_metrics = calculate_team_metrics(enriched_applicants, job_openings, recruiters, recruiter)
     funnel_data = calculate_funnel_data(enriched_applicants)
     job_status_data = calculate_job_status(job_openings)
     monthly_trends = calculate_monthly_trends(enriched_applicants, time_period)
     recruiter_performance = calculate_recruiter_performance(enriched_applicants, recruiters, recruiter)
     
-    # 7. Format jobs for frontend (set positions to 1 as default)
+    # 10. Format jobs for frontend
     formatted_jobs = [
         {
             "id": job.name,
@@ -142,7 +157,7 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "client": job.company,
             "location": job.location or "Not specified",
             "status": job.status,
-            "positions": 1,  # Default to 1 since field doesn't exist in standard doctype
+            "positions": 1,
             "createdDate": job.creation.strftime("%Y-%m-%d") if job.creation else None,
             "recruiter": job.owner
         }
@@ -158,10 +173,9 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         "job_status_data": job_status_data,
         "monthly_trends": monthly_trends,
         "recruiter_performance": recruiter_performance,
-        "applicants": enriched_applicants[:100],  # Limit to recent 100
-        "jobs": formatted_jobs[:50]  # Limit to recent 50
+        "applicants": enriched_applicants[:100],
+        "jobs": formatted_jobs[:50]
     }
-
 
 def get_date_filter(time_period):
     """Calculate date filter based on time period"""
