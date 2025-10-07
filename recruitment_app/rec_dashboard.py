@@ -940,6 +940,7 @@ def get_recruiter_dashboard_both(email=None,company=None):
         'shortlisted_applicants_by_company':get_shortlisted_applicants_by_company(email, company),
         'assessment_stage_applicants_by_company':get_assessment_stage_applicants_by_company(email, company),
         'interview_stage_applicants_by_company':get_interview_stage_applicants_by_company(email, company),
+        'interview_reject_applicants_by_company':get_interview_reject_applicants_by_company(email, company),
         'offered_applicants_by_company':get_offered_applicants_by_company(email, company),
         'rejected_applicants_by_company':get_rejected_applicants_by_company(email, company),
         'joined_applicants_by_company':get_joined_applicants_by_company(email, company)
@@ -1172,6 +1173,52 @@ def get_interview_stage_applicants_by_company(email, company=None):
 
     return {"applicants_by_company": result}
 
+
+
+@frappe.whitelist(allow_guest=False)
+def get_interview_reject_applicants_by_company(email, company=None):
+    if not email:
+        frappe.throw(_("Email is required"))
+
+    job_filters = {}
+    if company:
+        job_filters["company"] = company
+
+    job_openings = frappe.get_all(
+        "Job Opening", 
+        filters=job_filters, 
+        fields=["name", "company"],
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
+    )
+    job_map = {job.name: job.company for job in job_openings}
+
+    applicants = frappe.get_all(
+        "Job Applicant",
+        filters={"status": "Interview Reject", "owner": email},
+        fields=[
+            "name","applicant_name","email_id","phone_number","country",
+            "job_title","designation","notes","resume_attachment","resume_link",
+            "lower_range","upper_range"
+        ],
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
+        order_by="creation desc"
+    )
+
+    result = {}
+    for applicant in applicants:
+        job_id = applicant.job_title
+        company_name = job_map.get(job_id, "Unknown Company")
+        if company and company_name != company:
+            continue
+        if company_name not in result:
+            result[company_name] = []
+        result[company_name].append(applicant)
+
+    return {"applicants_by_company": result}
+
+
+
+
 @frappe.whitelist(allow_guest=False)
 def get_offered_applicants_by_company(email, company=None):
     if not email:
@@ -1233,7 +1280,7 @@ def get_rejected_applicants_by_company(email, company=None):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Rejected", "owner": email},
+        filters={"status": "Offer Drop", "owner": email},
         fields=[
             "name","applicant_name","email_id","phone_number","country",
             "job_title","designation","notes","resume_attachment","resume_link",
@@ -1306,8 +1353,6 @@ def get_recruiter_dashboard_both(email=None,company=None):
     }
     
     return data
-
-
 
 
 @frappe.whitelist(allow_guest=False)
