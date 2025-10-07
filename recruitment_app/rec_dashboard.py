@@ -942,7 +942,7 @@ def get_recruiter_dashboard_both(email=None,company=None):
         'interview_stage_applicants_by_company':get_interview_stage_applicants_by_company(email, company),
         'interview_reject_applicants_by_company':get_interview_reject_applicants_by_company(email, company),
         'offered_applicants_by_company':get_offered_applicants_by_company(email, company),
-        'rejected_applicants_by_company':get_rejected_applicants_by_company(email, company),
+        'offer_drop_applicants_by_company':get_rejected_applicants_by_company(email, company),
         'joined_applicants_by_company':get_joined_applicants_by_company(email, company)
       
     }
