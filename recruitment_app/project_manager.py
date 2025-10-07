@@ -52,15 +52,15 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     ]
     
     # 2. Build filters for Job Opening
-    job_filters = [
-        ["creation", ">=", date_filter]
-    ]
+    job_filters = {
+        "creation": [">=", date_filter]
+    }
     
     if client and client != "All":
-        job_filters.append(["company", "=", client])
+        job_filters["company"] = client
     
     if recruiter and recruiter != "all":
-        job_filters.append(["owner", "=", recruiter])
+        job_filters["owner"] = recruiter
     
     # Fetch Job Openings (using only fields that exist in standard Job Opening)
     job_openings = frappe.get_all(
@@ -83,12 +83,12 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     job_company_map = {job.name: job.company for job in job_openings}
     
     # 3. Build filters for Job Applicant
-    applicant_filters = [
-        ["creation", ">=", date_filter]
-    ]
+    applicant_filters = {
+        "creation": [">=", date_filter]
+    }
     
     if recruiter and recruiter != "all":
-        applicant_filters.append(["owner", "=", recruiter])
+        applicant_filters["owner"] = recruiter
     
     # Fetch all Job Applicants
     all_applicants = frappe.get_all(
@@ -354,43 +354,3 @@ def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     performance.sort(key=lambda x: x["total_applicants"], reverse=True)
     
     return performance
-
-
-# Optional: Helper function to get all companies (similar to your existing pattern)
-@frappe.whitelist(allow_guest=False)
-def get_all_companies():
-    """
-    Fetch all unique company names from Job Opening doctype.
-    Manager-level function - no email filter.
-    """
-    companies = frappe.get_all(
-        "Job Opening",
-        fields=["distinct company"],
-        limit=0,
-        order_by="company asc"
-    )
-    
-    # Remove empty or null companies
-    companies = [c.company for c in companies if c.company]
-    
-    return {"companies": companies}
-
-
-# Optional: Get all recruiters summary
-@frappe.whitelist(allow_guest=False)
-def get_all_recruiters():
-    """
-    Fetch all active recruiters with basic info.
-    Manager-level function - only users with "Recruiter" role.
-    """
-    recruiters = frappe.db.sql("""
-        SELECT DISTINCT u.name, u.email, u.full_name, u.creation
-        FROM `tabUser` u
-        INNER JOIN `tabHas Role` hr ON hr.parent = u.name
-        WHERE hr.role = 'Recruiter'
-        AND u.enabled = 1
-        AND hr.parenttype = 'User'
-        ORDER BY u.full_name ASC
-    """, as_dict=1)
-    
-    return {"recruiters": recruiters}
