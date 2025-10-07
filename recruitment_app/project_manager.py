@@ -1,15 +1,320 @@
-import frappe
-from frappe import _
+# import frappe
+# from frappe import _
+
+# @frappe.whitelist(allow_guest=False)
+# def get_manager_dashboard_data(client=None, recruiter=None, time_period="month"):
+#     """
+#     Master function to fetch all manager dashboard data across all recruiters.
+#     Provides aggregated metrics, funnel data, trends, and recruiter performance.
+    
+#     Args:
+#         client: Filter by specific client/company (optional)
+#         recruiter: Filter by specific recruiter email (optional)
+#         time_period: Time period filter - "week", "month", or "quarter" (default: "month")
+    
+#     Returns:
+#         Dictionary containing:
+#         - clients: List of unique clients
+#         - recruiters: List of all recruiters with their info
+#         - team_metrics: Overall team statistics
+#         - funnel_data: Recruitment funnel stage counts
+#         - job_status_data: Job opening status distribution
+#         - monthly_trends: Time-series data for trends chart
+#         - recruiter_performance: Performance metrics by recruiter
+#         - applicants: Recent applicants list
+#         - jobs: Job openings list
+#     """
+#     from datetime import datetime, timedelta
+    
+#     # Calculate date filter based on time period
+#     date_filters = get_date_filter(time_period)
+    
+#     # Build dynamic filters
+#     job_filters = {"creation": [">", date_filters]}
+#     applicant_filters = {"creation": [">", date_filters]}
+    
+#     if client and client != "All":
+#         # We'll filter by company after fetching, as Job Applicant doesn't have company field
+#         pass
+    
+#     if recruiter and recruiter != "all":
+#         applicant_filters["owner"] = recruiter
+#         job_filters["owner"] = recruiter
+    
+#     # 1. Fetch all recruiters
+#     recruiters_list = frappe.get_all(
+#         "User",
+#         filters={"enabled": 1, "user_type": "System User"},
+#         fields=["name", "email", "full_name"],
+#         limit=0
+#     )
+    
+#     # Format recruiters for frontend
+#     recruiters = [
+#         {
+#             "id": r.name,
+#             "name": r.full_name or r.email,
+#             "email": r.email,
+#             "team": "All"  # You can customize this based on your team structure
+#         }
+#         for r in recruiters_list
+#     ]
+    
+#     # 2. Fetch Job Openings
+#     job_openings = frappe.get_all(
+#         "Job Opening",
+#         filters=job_filters,
+#         fields=[
+#             "name",
+#             "job_title",
+#             "company",
+#             "location",
+#             "status",
+#             "number_of_positions",
+#             "creation",
+#             "owner"
+#         ],
+#         limit=0,
+#         order_by="creation desc"
+#     )
+    
+#     # Create job to company mapping
+#     job_company_map = {job.name: job.company for job in job_openings}
+    
+#     # Filter by client if specified
+#     if client and client != "All":
+#         job_openings = [j for j in job_openings if j.company == client]
+    
+#     # 3. Fetch all Job Applicants
+#     all_applicants = frappe.get_all(
+#         "Job Applicant",
+#         filters=applicant_filters,
+#         fields=[
+#             "name",
+#             "applicant_name",
+#             "email_id",
+#             "job_title",
+#             "status",
+#             "creation",
+#             "modified",
+#             "owner"
+#         ],
+#         limit=0,
+#         order_by="creation desc"
+#     )
+    
+#     # Enrich applicants with company information and filter
+#     enriched_applicants = []
+#     for applicant in all_applicants:
+#         company = job_company_map.get(applicant.job_title, "Unknown")
+        
+#         # Apply client filter
+#         if client and client != "All" and company != client:
+#             continue
+            
+#         applicant_data = {
+#             "id": applicant.name,
+#             "name": applicant.applicant_name,
+#             "email": applicant.email_id,
+#             "job_title": applicant.job_title,
+#             "client": company,
+#             "status": applicant.status,
+#             "appliedDate": applicant.creation.strftime("%Y-%m-%d") if applicant.creation else None,
+#             "lastUpdated": applicant.modified.strftime("%Y-%m-%d") if applicant.modified else None,
+#             "recruiter": applicant.owner
+#         }
+#         enriched_applicants.append(applicant_data)
+    
+#     # 4. Get unique clients
+#     clients = ["All"] + sorted(list(set([job.company for job in job_openings if job.company])))
+    
+#     # 5. Calculate Team Metrics
+#     team_metrics = calculate_team_metrics(enriched_applicants, job_openings, recruiters, recruiter)
+    
+#     # 6. Calculate Funnel Data
+#     funnel_data = calculate_funnel_data(enriched_applicants)
+    
+#     # 7. Calculate Job Status Distribution
+#     job_status_data = calculate_job_status(job_openings)
+    
+#     # 8. Calculate Monthly Trends
+#     monthly_trends = calculate_monthly_trends(enriched_applicants, time_period)
+    
+#     # 9. Calculate Recruiter Performance
+#     recruiter_performance = calculate_recruiter_performance(enriched_applicants, recruiters, recruiter)
+    
+#     # 10. Format jobs for frontend
+#     formatted_jobs = [
+#         {
+#             "id": job.name,
+#             "title": job.job_title,
+#             "client": job.company,
+#             "location": job.location or "Not specified",
+#             "status": job.status,
+#             "positions": job.number_of_positions or 1,
+#             "createdDate": job.creation.strftime("%Y-%m-%d") if job.creation else None,
+#             "recruiter": job.owner
+#         }
+#         for job in job_openings
+#     ]
+    
+#     return {
+#         "success": True,
+#         "clients": clients,
+#         "recruiters": recruiters,
+#         "team_metrics": team_metrics,
+#         "funnel_data": funnel_data,
+#         "job_status_data": job_status_data,
+#         "monthly_trends": monthly_trends,
+#         "recruiter_performance": recruiter_performance,
+#         "applicants": enriched_applicants[:100],  # Limit to recent 100
+#         "jobs": formatted_jobs[:50]  # Limit to recent 50
+#     }
+
+
+# def get_date_filter(time_period):
+#     """Calculate date filter based on time period"""
+#     from datetime import datetime, timedelta
+    
+#     now = datetime.now()
+    
+#     if time_period == "week":
+#         return now - timedelta(days=7)
+#     elif time_period == "month":
+#         return now - timedelta(days=30)
+#     elif time_period == "quarter":
+#         return now - timedelta(days=90)
+#     else:
+#         return now - timedelta(days=30)
+
+
+# def calculate_team_metrics(applicants, jobs, recruiters, selected_recruiter):
+#     """Calculate overall team metrics"""
+#     total_recruiters = 1 if selected_recruiter and selected_recruiter != "all" else len(recruiters)
+    
+#     return {
+#         "totalRecruiters": total_recruiters,
+#         "totalApplicants": len(applicants),
+#         "totalJobs": len(jobs),
+#         "openPositions": len([j for j in jobs if j.get("status") == "Open"]),
+#         "joined": len([a for a in applicants if a.get("status") == "Joined"])
+#     }
+
+
+# def calculate_funnel_data(applicants):
+#     """Calculate recruitment funnel stage counts"""
+#     stages = {
+#         "Total CV's Uploaded": len(applicants),
+#         "Tagged": len([a for a in applicants if a.get("status") == "Tagged"]),
+#         "Shortlisted": len([a for a in applicants if a.get("status") == "Shortlisted"]),
+#         "Assessment Stage": len([a for a in applicants if a.get("status") == "Assessment Stage"]),
+#         "Interview Stage": len([a for a in applicants if a.get("status") == "Interview Stage"]),
+#         "Offered": len([a for a in applicants if a.get("status") == "Offered"]),
+#         "Offer Rejected": len([a for a in applicants if a.get("status") == "Offer Rejected"]),
+#         "Rejected": len([a for a in applicants if a.get("status") == "Rejected"]),
+#         "Joined": len([a for a in applicants if a.get("status") == "Joined"])
+#     }
+    
+#     return {
+#         "labels": list(stages.keys()),
+#         "data": list(stages.values())
+#     }
+
+
+# def calculate_job_status(jobs):
+#     """Calculate job opening status distribution"""
+#     status_counts = {
+#         "Open": len([j for j in jobs if j.get("status") == "Open"]),
+#         "Offered": len([j for j in jobs if j.get("status") == "Offered"]),
+#         "Joined": len([j for j in jobs if j.get("status") == "Closed"]),  # Assuming Closed means Joined
+#         "Cancelled": len([j for j in jobs if j.get("status") == "Cancelled"])
+#     }
+    
+#     return {
+#         "labels": list(status_counts.keys()),
+#         "data": list(status_counts.values())
+#     }
+
+
+# def calculate_monthly_trends(applicants, time_period):
+#     """Calculate time-series trends data"""
+#     from datetime import datetime, timedelta
+    
+#     # Determine labels based on time period
+#     if time_period == "week":
+#         labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+#         periods = 7
+#     elif time_period == "month":
+#         labels = ["Week 1", "Week 2", "Week 3", "Week 4"]
+#         periods = 4
+#     else:  # quarter
+#         labels = ["Month 1", "Month 2", "Month 3"]
+#         periods = 3
+    
+#     # Initialize data structure
+#     trends = []
+    
+#     for i, label in enumerate(labels):
+#         period_data = {
+#             "month": label,
+#             "totalCVUploaded": 0,
+#             "tagged": 0,
+#             "shortlisted": 0,
+#             "assessmentStage": 0,
+#             "interviews": 0,
+#             "offers": 0,
+#             "joined": 0
+#         }
+        
+#         # Calculate cumulative counts (simplified - you may want more sophisticated date-based filtering)
+#         factor = (i + 1) / len(labels)
+        
+#         period_data["totalCVUploaded"] = int(len(applicants) * factor)
+#         period_data["tagged"] = int(len([a for a in applicants if a.get("status") == "Tagged"]) * factor)
+#         period_data["shortlisted"] = int(len([a for a in applicants if a.get("status") == "Shortlisted"]) * factor)
+#         period_data["assessmentStage"] = int(len([a for a in applicants if a.get("status") == "Assessment Stage"]) * factor)
+#         period_data["interviews"] = int(len([a for a in applicants if a.get("status") == "Interview Stage"]) * factor)
+#         period_data["offers"] = int(len([a for a in applicants if a.get("status") == "Offered"]) * factor)
+#         period_data["joined"] = int(len([a for a in applicants if a.get("status") == "Joined"]) * factor)
+        
+#         trends.append(period_data)
+    
+#     return trends
+
+
+# def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
+#     """Calculate performance metrics by recruiter"""
+#     # Filter recruiters if specific one selected
+#     if selected_recruiter and selected_recruiter != "all":
+#         recruiters = [r for r in recruiters if r["email"] == selected_recruiter]
+    
+#     performance = []
+    
+#     for recruiter in recruiters:
+#         recruiter_applicants = [a for a in applicants if a.get("recruiter") == recruiter["email"]]
+        
+#         performance.append({
+#             "recruiter_name": recruiter["name"],
+#             "recruiter_id": recruiter["id"],
+#             "joined": len([a for a in recruiter_applicants if a.get("status") == "Joined"]),
+#             "offered": len([a for a in recruiter_applicants if a.get("status") == "Offered"]),
+#             "active": len([a for a in recruiter_applicants if a.get("status") not in ["Rejected", "Offer Rejected", "Joined"]]),
+#             "total_applicants": len(recruiter_applicants)
+#         })
+    
+#     return performance
+
+
 
 @frappe.whitelist(allow_guest=False)
 def get_manager_dashboard_data(client=None, recruiter=None, time_period="month"):
     """
     Master function to fetch all manager dashboard data across all recruiters.
-    Provides aggregated metrics, funnel data, trends, and recruiter performance.
+    No email required - aggregates data from all users.
     
     Args:
-        client: Filter by specific client/company (optional)
-        recruiter: Filter by specific recruiter email (optional)
+        client: Filter by specific client/company (optional, default "All")
+        recruiter: Filter by specific recruiter email (optional, default "all")
         time_period: Time period filter - "week", "month", or "quarter" (default: "month")
     
     Returns:
@@ -27,24 +332,16 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     from datetime import datetime, timedelta
     
     # Calculate date filter based on time period
-    date_filters = get_date_filter(time_period)
+    date_filter = get_date_filter(time_period)
     
-    # Build dynamic filters
-    job_filters = {"creation": [">", date_filters]}
-    applicant_filters = {"creation": [">", date_filters]}
-    
-    if client and client != "All":
-        # We'll filter by company after fetching, as Job Applicant doesn't have company field
-        pass
-    
-    if recruiter and recruiter != "all":
-        applicant_filters["owner"] = recruiter
-        job_filters["owner"] = recruiter
-    
-    # 1. Fetch all recruiters
+    # 1. Get all active recruiters (System Users)
     recruiters_list = frappe.get_all(
         "User",
-        filters={"enabled": 1, "user_type": "System User"},
+        filters={
+            "enabled": 1,
+            "user_type": "System User",
+            "name": ["!=", "Administrator"]
+        },
         fields=["name", "email", "full_name"],
         limit=0
     )
@@ -55,12 +352,23 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "id": r.name,
             "name": r.full_name or r.email,
             "email": r.email,
-            "team": "All"  # You can customize this based on your team structure
+            "team": "All"
         }
         for r in recruiters_list
     ]
     
-    # 2. Fetch Job Openings
+    # 2. Build filters for Job Opening
+    job_filters = [
+        ["creation", ">=", date_filter]
+    ]
+    
+    if client and client != "All":
+        job_filters.append(["company", "=", client])
+    
+    if recruiter and recruiter != "all":
+        job_filters.append(["owner", "=", recruiter])
+    
+    # Fetch Job Openings (using only fields that exist in standard Job Opening)
     job_openings = frappe.get_all(
         "Job Opening",
         filters=job_filters,
@@ -70,7 +378,6 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "company",
             "location",
             "status",
-            "number_of_positions",
             "creation",
             "owner"
         ],
@@ -81,11 +388,15 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     # Create job to company mapping
     job_company_map = {job.name: job.company for job in job_openings}
     
-    # Filter by client if specified
-    if client and client != "All":
-        job_openings = [j for j in job_openings if j.company == client]
+    # 3. Build filters for Job Applicant
+    applicant_filters = [
+        ["creation", ">=", date_filter]
+    ]
     
-    # 3. Fetch all Job Applicants
+    if recruiter and recruiter != "all":
+        applicant_filters.append(["owner", "=", recruiter])
+    
+    # Fetch all Job Applicants
     all_applicants = frappe.get_all(
         "Job Applicant",
         filters=applicant_filters,
@@ -93,6 +404,7 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "name",
             "applicant_name",
             "email_id",
+            "phone_number",
             "job_title",
             "status",
             "creation",
@@ -103,10 +415,10 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         order_by="creation desc"
     )
     
-    # Enrich applicants with company information and filter
+    # 4. Enrich applicants with company information and filter by client
     enriched_applicants = []
     for applicant in all_applicants:
-        company = job_company_map.get(applicant.job_title, "Unknown")
+        company = job_company_map.get(applicant.job_title, "Unknown Company")
         
         # Apply client filter
         if client and client != "All" and company != client:
@@ -116,6 +428,7 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "id": applicant.name,
             "name": applicant.applicant_name,
             "email": applicant.email_id,
+            "phone": applicant.phone_number,
             "job_title": applicant.job_title,
             "client": company,
             "status": applicant.status,
@@ -125,25 +438,18 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
         }
         enriched_applicants.append(applicant_data)
     
-    # 4. Get unique clients
-    clients = ["All"] + sorted(list(set([job.company for job in job_openings if job.company])))
+    # 5. Get unique clients from job openings
+    unique_companies = set([job.company for job in job_openings if job.company])
+    clients = ["All"] + sorted(list(unique_companies))
     
-    # 5. Calculate Team Metrics
+    # 6. Calculate all metrics and data
     team_metrics = calculate_team_metrics(enriched_applicants, job_openings, recruiters, recruiter)
-    
-    # 6. Calculate Funnel Data
     funnel_data = calculate_funnel_data(enriched_applicants)
-    
-    # 7. Calculate Job Status Distribution
     job_status_data = calculate_job_status(job_openings)
-    
-    # 8. Calculate Monthly Trends
     monthly_trends = calculate_monthly_trends(enriched_applicants, time_period)
-    
-    # 9. Calculate Recruiter Performance
     recruiter_performance = calculate_recruiter_performance(enriched_applicants, recruiters, recruiter)
     
-    # 10. Format jobs for frontend
+    # 7. Format jobs for frontend (set positions to 1 as default)
     formatted_jobs = [
         {
             "id": job.name,
@@ -151,7 +457,7 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "client": job.company,
             "location": job.location or "Not specified",
             "status": job.status,
-            "positions": job.number_of_positions or 1,
+            "positions": 1,  # Default to 1 since field doesn't exist in standard doctype
             "createdDate": job.creation.strftime("%Y-%m-%d") if job.creation else None,
             "recruiter": job.owner
         }
@@ -192,11 +498,14 @@ def calculate_team_metrics(applicants, jobs, recruiters, selected_recruiter):
     """Calculate overall team metrics"""
     total_recruiters = 1 if selected_recruiter and selected_recruiter != "all" else len(recruiters)
     
+    # Since number_of_positions doesn't exist, count each job as 1 position
+    open_jobs_count = len([job for job in jobs if job.get("status") == "Open"])
+    
     return {
         "totalRecruiters": total_recruiters,
         "totalApplicants": len(applicants),
         "totalJobs": len(jobs),
-        "openPositions": len([j for j in jobs if j.get("status") == "Open"]),
+        "openPositions": open_jobs_count,  # Each job = 1 position
         "joined": len([a for a in applicants if a.get("status") == "Joined"])
     }
 
@@ -223,12 +532,25 @@ def calculate_funnel_data(applicants):
 
 def calculate_job_status(jobs):
     """Calculate job opening status distribution"""
-    status_counts = {
-        "Open": len([j for j in jobs if j.get("status") == "Open"]),
-        "Offered": len([j for j in jobs if j.get("status") == "Offered"]),
-        "Joined": len([j for j in jobs if j.get("status") == "Closed"]),  # Assuming Closed means Joined
-        "Cancelled": len([j for j in jobs if j.get("status") == "Cancelled"])
+    status_map = {
+        "Open": "Open",
+        "Closed": "Joined",
+        "Cancelled": "Cancelled"
     }
+    
+    status_counts = {
+        "Open": 0,
+        "Offered": 0,
+        "Joined": 0,
+        "Cancelled": 0
+    }
+    
+    for job in jobs:
+        job_status = job.get("status", "Open")
+        mapped_status = status_map.get(job_status, "Open")
+        
+        if mapped_status in status_counts:
+            status_counts[mapped_status] += 1
     
     return {
         "labels": list(status_counts.keys()),
@@ -237,47 +559,70 @@ def calculate_job_status(jobs):
 
 
 def calculate_monthly_trends(applicants, time_period):
-    """Calculate time-series trends data"""
+    """
+    Calculate time-series trends data with actual date-based distribution
+    """
     from datetime import datetime, timedelta
     
-    # Determine labels based on time period
+    now = datetime.now()
+    
+    # Determine periods and labels
     if time_period == "week":
         labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        periods = 7
+        num_periods = 7
+        period_days = 1
     elif time_period == "month":
         labels = ["Week 1", "Week 2", "Week 3", "Week 4"]
-        periods = 4
+        num_periods = 4
+        period_days = 7
     else:  # quarter
         labels = ["Month 1", "Month 2", "Month 3"]
-        periods = 3
+        num_periods = 3
+        period_days = 30
     
-    # Initialize data structure
+    # Initialize period buckets
     trends = []
     
-    for i, label in enumerate(labels):
+    for i in range(num_periods):
+        period_start = now - timedelta(days=period_days * (num_periods - i))
+        period_end = now - timedelta(days=period_days * (num_periods - i - 1))
+        
+        # Filter applicants for this period
+        period_applicants = [
+            a for a in applicants
+            if a.get("appliedDate") and 
+            period_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= period_end.strftime("%Y-%m-%d")
+        ]
+        
+        # Count by status
         period_data = {
-            "month": label,
-            "totalCVUploaded": 0,
-            "tagged": 0,
-            "shortlisted": 0,
-            "assessmentStage": 0,
-            "interviews": 0,
-            "offers": 0,
-            "joined": 0
+            "month": labels[i],
+            "totalCVUploaded": len(period_applicants),
+            "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
+            "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
+            "assessmentStage": len([a for a in period_applicants if a.get("status") == "Assessment Stage"]),
+            "interviews": len([a for a in period_applicants if a.get("status") == "Interview Stage"]),
+            "offers": len([a for a in period_applicants if a.get("status") == "Offered"]),
+            "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
         }
         
-        # Calculate cumulative counts (simplified - you may want more sophisticated date-based filtering)
-        factor = (i + 1) / len(labels)
-        
-        period_data["totalCVUploaded"] = int(len(applicants) * factor)
-        period_data["tagged"] = int(len([a for a in applicants if a.get("status") == "Tagged"]) * factor)
-        period_data["shortlisted"] = int(len([a for a in applicants if a.get("status") == "Shortlisted"]) * factor)
-        period_data["assessmentStage"] = int(len([a for a in applicants if a.get("status") == "Assessment Stage"]) * factor)
-        period_data["interviews"] = int(len([a for a in applicants if a.get("status") == "Interview Stage"]) * factor)
-        period_data["offers"] = int(len([a for a in applicants if a.get("status") == "Offered"]) * factor)
-        period_data["joined"] = int(len([a for a in applicants if a.get("status") == "Joined"]) * factor)
-        
         trends.append(period_data)
+    
+    # If no data in periods, use cumulative approach
+    if all(t["totalCVUploaded"] == 0 for t in trends):
+        total_count = len(applicants)
+        for i, label in enumerate(labels):
+            factor = (i + 1) / len(labels)
+            trends[i] = {
+                "month": label,
+                "totalCVUploaded": int(total_count * factor),
+                "tagged": int(len([a for a in applicants if a.get("status") == "Tagged"]) * factor),
+                "shortlisted": int(len([a for a in applicants if a.get("status") == "Shortlisted"]) * factor),
+                "assessmentStage": int(len([a for a in applicants if a.get("status") == "Assessment Stage"]) * factor),
+                "interviews": int(len([a for a in applicants if a.get("status") == "Interview Stage"]) * factor),
+                "offers": int(len([a for a in applicants if a.get("status") == "Offered"]) * factor),
+                "joined": int(len([a for a in applicants if a.get("status") == "Joined"]) * factor)
+            }
     
     return trends
 
@@ -285,21 +630,75 @@ def calculate_monthly_trends(applicants, time_period):
 def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     """Calculate performance metrics by recruiter"""
     # Filter recruiters if specific one selected
+    active_recruiters = recruiters
     if selected_recruiter and selected_recruiter != "all":
-        recruiters = [r for r in recruiters if r["email"] == selected_recruiter]
+        active_recruiters = [r for r in recruiters if r["email"] == selected_recruiter]
     
     performance = []
     
-    for recruiter in recruiters:
+    for recruiter in active_recruiters:
         recruiter_applicants = [a for a in applicants if a.get("recruiter") == recruiter["email"]]
+        
+        # Calculate metrics
+        joined_count = len([a for a in recruiter_applicants if a.get("status") == "Joined"])
+        offered_count = len([a for a in recruiter_applicants if a.get("status") == "Offered"])
+        active_count = len([
+            a for a in recruiter_applicants 
+            if a.get("status") not in ["Rejected", "Offer Rejected", "Joined"]
+        ])
         
         performance.append({
             "recruiter_name": recruiter["name"],
             "recruiter_id": recruiter["id"],
-            "joined": len([a for a in recruiter_applicants if a.get("status") == "Joined"]),
-            "offered": len([a for a in recruiter_applicants if a.get("status") == "Offered"]),
-            "active": len([a for a in recruiter_applicants if a.get("status") not in ["Rejected", "Offer Rejected", "Joined"]]),
+            "joined": joined_count,
+            "offered": offered_count,
+            "active": active_count,
             "total_applicants": len(recruiter_applicants)
         })
     
+    # Sort by total applicants descending
+    performance.sort(key=lambda x: x["total_applicants"], reverse=True)
+    
     return performance
+
+
+# Optional: Helper function to get all companies (similar to your existing pattern)
+@frappe.whitelist(allow_guest=False)
+def get_all_companies():
+    """
+    Fetch all unique company names from Job Opening doctype.
+    Manager-level function - no email filter.
+    """
+    companies = frappe.get_all(
+        "Job Opening",
+        fields=["distinct company"],
+        limit=0,
+        order_by="company asc"
+    )
+    
+    # Remove empty or null companies
+    companies = [c.company for c in companies if c.company]
+    
+    return {"companies": companies}
+
+
+# Optional: Get all recruiters summary
+@frappe.whitelist(allow_guest=False)
+def get_all_recruiters():
+    """
+    Fetch all active recruiters with basic info.
+    Manager-level function.
+    """
+    recruiters = frappe.get_all(
+        "User",
+        filters={
+            "enabled": 1,
+            "user_type": "System User",
+            "name": ["!=", "Administrator"]
+        },
+        fields=["name", "email", "full_name", "creation"],
+        limit=0,
+        order_by="full_name asc"
+    )
+    
+    return {"recruiters": recruiters}
