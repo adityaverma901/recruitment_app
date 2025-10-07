@@ -30,16 +30,6 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     date_filter = get_date_filter(time_period)
     
     # 1. Get all active recruiters (users with "Recruiter" role)
-    # recruiters_list = frappe.db.sql("""
-    #     SELECT DISTINCT u.name, u.email, u.full_name
-    #     FROM `tabUser` u
-    #     INNER JOIN `tabHas Role` hr ON hr.parent = u.name
-    #     WHERE hr.role = 'Recruiter'
-    #     AND u.enabled = 1
-    #     AND hr.parenttype = 'User'
-    #     ORDER BY u.full_name
-    # """, as_dict=1)
-
     recruiters_list = get_recruiters_list()
     
     # Format recruiters for frontend
@@ -208,7 +198,7 @@ def calculate_team_metrics(applicants, jobs, recruiters, selected_recruiter):
 def calculate_funnel_data(applicants):
     """Calculate recruitment funnel stage counts"""
     stages = {
-        "Total CV's Uploaded": len(applicants),
+        "Open": len([a for a in applicants if a.get("status") == "Open"]),
         "Tagged": len([a for a in applicants if a.get("status") == "Tagged"]),
         "Shortlisted": len([a for a in applicants if a.get("status") == "Shortlisted"]),
         "Assessment": len([a for a in applicants if a.get("status") == "Assessment"]),
@@ -227,25 +217,19 @@ def calculate_funnel_data(applicants):
 
 def calculate_job_status(jobs):
     """Calculate job opening status distribution"""
-    status_map = {
-        "Open": "Open",
-        "Closed": "Joined",
-        "Cancelled": "Cancelled"
-    }
-    
     status_counts = {
         "Open": 0,
-        "Offered": 0,
-        "Joined": 0,
+        "Closed": 0,
         "Cancelled": 0
     }
     
     for job in jobs:
         job_status = job.get("status", "Open")
-        mapped_status = status_map.get(job_status, "Open")
-        
-        if mapped_status in status_counts:
-            status_counts[mapped_status] += 1
+        if job_status in status_counts:
+            status_counts[job_status] += 1
+        else:
+            # If status is not in our expected values, count it as Open
+            status_counts["Open"] += 1
     
     return {
         "labels": list(status_counts.keys()),
@@ -289,15 +273,16 @@ def calculate_monthly_trends(applicants, time_period):
             period_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= period_end.strftime("%Y-%m-%d")
         ]
         
-        # Count by status
+        # Count by status using the updated status values
         period_data = {
             "month": labels[i],
             "totalCVUploaded": len(period_applicants),
+            "open": len([a for a in period_applicants if a.get("status") == "Open"]),
             "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
             "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-            "assessmentStage": len([a for a in period_applicants if a.get("status") == "Assessment Stage"]),
-            "interviews": len([a for a in period_applicants if a.get("status") == "Interview Stage"]),
-            "offers": len([a for a in period_applicants if a.get("status") == "Offered"]),
+            "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
+            "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
+            "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
             "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
         }
         
@@ -311,11 +296,12 @@ def calculate_monthly_trends(applicants, time_period):
             trends[i] = {
                 "month": label,
                 "totalCVUploaded": int(total_count * factor),
+                "open": int(len([a for a in applicants if a.get("status") == "Open"]) * factor),
                 "tagged": int(len([a for a in applicants if a.get("status") == "Tagged"]) * factor),
                 "shortlisted": int(len([a for a in applicants if a.get("status") == "Shortlisted"]) * factor),
-                "assessmentStage": int(len([a for a in applicants if a.get("status") == "Assessment Stage"]) * factor),
-                "interviews": int(len([a for a in applicants if a.get("status") == "Interview Stage"]) * factor),
-                "offers": int(len([a for a in applicants if a.get("status") == "Offered"]) * factor),
+                "assessment": int(len([a for a in applicants if a.get("status") == "Assessment"]) * factor),
+                "interview": int(len([a for a in applicants if a.get("status") == "Interview"]) * factor),
+                "offered": int(len([a for a in applicants if a.get("status") == "Offered"]) * factor),
                 "joined": int(len([a for a in applicants if a.get("status") == "Joined"]) * factor)
             }
     
@@ -334,20 +320,25 @@ def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     for recruiter in active_recruiters:
         recruiter_applicants = [a for a in applicants if a.get("recruiter") == recruiter["email"]]
         
-        # Calculate metrics
-        joined_count = len([a for a in recruiter_applicants if a.get("status") == "Joined"])
+        # Calculate metrics using updated status values
+        open_count = len([a for a in recruiter_applicants if a.get("status") == "Open"])
+        tagged_count = len([a for a in recruiter_applicants if a.get("status") == "Tagged"])
+        shortlisted_count = len([a for a in recruiter_applicants if a.get("status") == "Shortlisted"])
+        assessment_count = len([a for a in recruiter_applicants if a.get("status") == "Assessment"])
+        interview_count = len([a for a in recruiter_applicants if a.get("status") == "Interview"])
         offered_count = len([a for a in recruiter_applicants if a.get("status") == "Offered"])
-        active_count = len([
-            a for a in recruiter_applicants 
-            if a.get("status") not in ["Rejected", "Offer Rejected", "Joined"]
-        ])
+        joined_count = len([a for a in recruiter_applicants if a.get("status") == "Joined"])
         
         performance.append({
             "recruiter_name": recruiter["name"],
             "recruiter_id": recruiter["id"],
-            "joined": joined_count,
+            "open": open_count,
+            "tagged": tagged_count,
+            "shortlisted": shortlisted_count,
+            "assessment": assessment_count,
+            "interview": interview_count,
             "offered": offered_count,
-            "active": active_count,
+            "joined": joined_count,
             "total_applicants": len(recruiter_applicants)
         })
     
@@ -357,8 +348,82 @@ def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     return performance
 
 
-
 def get_recruiters_list():
+    """Get all users with Recruiter role using proper Frappe methods"""
+    
+    # Method 1: Using Frappe's get_all with role filter
+    try:
+        recruiters = frappe.get_all(
+            "User",
+            filters={
+                "enabled": 1,
+                "name": ["in", frappe.get_all(
+                    "Has Role",
+                    filters={"role": "Recruiter", "parenttype": "User"},
+                    fields=["parent"],
+                    distinct=True
+                )]
+            },
+            fields=["name", "email", "full_name"],
+            order_by="full_name"
+        )
+        
+        if recruiters:
+            return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 1: {str(e)}")
+    
+    # Method 2: Alternative query approach
+    try:
+        recruiters = frappe.db.sql("""
+            SELECT DISTINCT u.name, u.email, u.full_name
+            FROM `tabUser` u
+            WHERE u.name IN (
+                SELECT DISTINCT parent 
+                FROM `tabHas Role` 
+                WHERE role = 'Recruiter' 
+                AND parenttype = 'User'
+            )
+            AND u.enabled = 1
+            ORDER BY u.full_name
+        """, as_dict=True)
+        
+        if recruiters:
+            return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 2: {str(e)}")
+    
+    # Method 3: Fallback - get all enabled users and filter by role
+    try:
+        all_users = frappe.get_all(
+            "User",
+            filters={"enabled": 1},
+            fields=["name", "email", "full_name", "roles"]
+        )
+        
+        recruiters = []
+        for user in all_users:
+            user_doc = frappe.get_doc("User", user.name)
+            user_roles = [r.role for r in user_doc.roles]
+            if "Recruiter" in user_roles:
+                recruiters.append({
+                    "name": user.name,
+                    "email": user.email,
+                    "full_name": user.full_name
+                })
+        
+        return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 3: {str(e)}")
+    
+    # Method 4: Ultimate fallback - return current user if no recruiters found
+    frappe.log_error("No recruiters found with any method, returning current user")
+    current_user = frappe.session.user
+    return [{
+        "name": current_user,
+        "email": current_user,
+        "full_name": frappe.get_value("User", current_user, "full_name") or current_user
+    }]
     """Get all users with Recruiter role using proper Frappe methods"""
     
     # Method 1: Using Frappe's get_all with role filter
