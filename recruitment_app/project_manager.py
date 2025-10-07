@@ -1,5 +1,3 @@
-import frappe
-from frappe import _
 @frappe.whitelist(allow_guest=False)
 def get_manager_dashboard_data(client=None, recruiter=None, time_period="month"):
     """
@@ -45,6 +43,7 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
             "id": r.name,
             "name": r.full_name or r.email,
             "email": r.email,
+            "team": "All"
         }
         for r in recruiters_list
     ]
@@ -379,18 +378,16 @@ def get_all_companies():
 def get_all_recruiters():
     """
     Fetch all active recruiters with basic info.
-    Manager-level function.
+    Manager-level function - only users with "Recruiter" role.
     """
-    recruiters = frappe.get_all(
-        "User",
-        filters={
-            "enabled": 1,
-            "user_type": "System User",
-            "name": ["!=", "Administrator"]
-        },
-        fields=["name", "email", "full_name", "creation"],
-        limit=0,
-        order_by="full_name asc"
-    )
+    recruiters = frappe.db.sql("""
+        SELECT DISTINCT u.name, u.email, u.full_name, u.creation
+        FROM `tabUser` u
+        INNER JOIN `tabHas Role` hr ON hr.parent = u.name
+        WHERE hr.role = 'Recruiter'
+        AND u.enabled = 1
+        AND hr.parenttype = 'User'
+        ORDER BY u.full_name ASC
+    """, as_dict=1)
     
     return {"recruiters": recruiters}
