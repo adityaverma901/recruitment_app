@@ -924,29 +924,6 @@ from frappe import _
 
 #### 
 
-@frappe.whitelist(allow_guest=False)
-def get_recruiter_dashboard_only_email(email=None):
-    """
-    Fetch all recruiter dashboard data in a single API call
-    """
-    if not email:
-        email = frappe.session.user
-    
-    # Fetch all required data with optimized queries
-    data = {
-        'active_clients': get_companies_by_user(email),
-        'job_openings': get_job(email),
-        'tagged_applicants': get_tagged_applicants(email),
-        'shortlisted_applicants': get_shortlisted_applicants(email),
-        'assessment_stage_applicants': get_assessment_stage_applicants(email),
-        'interview_stage_applicants': get_interview_stage_applicants(email),
-        'offered_applicants': get_offered_applicants(email),
-        'rejected_applicants': get_rejected_applicants(email),
-        'joined_applicants': get_joined_applicants(email)
-    }
-    
-    return data
-
 
 @frappe.whitelist(allow_guest=False)
 def get_recruiter_dashboard_both(email=None,company=None):
@@ -1132,7 +1109,7 @@ def get_assessment_stage_applicants_by_company(email, company=None):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Assessment Stage", "owner": email},
+        filters={"status": "Assessment", "owner": email},
         fields=[
             "name","applicant_name","email_id","phone_number","country",
             "job_title","designation","notes","resume_attachment","resume_link",
@@ -1173,7 +1150,7 @@ def get_interview_stage_applicants_by_company(email, company=None):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Interview Stage", "owner": email},
+        filters={"status": "Interview", "owner": email},
         fields=[
             "name","applicant_name","email_id","phone_number","country",
             "job_title","designation","notes","resume_attachment","resume_link",
@@ -1284,6 +1261,54 @@ def get_rejected_applicants_by_company(email, company=None):
 #####
 
 
+@frappe.whitelist(allow_guest=False)
+def get_recruiter_dashboard_only_email(email=None):
+    """
+    Fetch all recruiter dashboard data in a single API call
+    """
+    if not email:
+        email = frappe.session.user
+    
+@frappe.whitelist(allow_guest=False)
+def get_recruiter_dashboard_both(email=None,company=None):
+    """
+    Fetch all recruiter dashboard data in a single API call
+    """
+    if not email:
+        email = frappe.session.user
+    
+    # Fetch all required data with optimized queries
+    data = {
+        'jobs_opening_by_company': get_jobs_by_company(email, company),
+       'tagged_applicants_by_company':get_tagged_applicants_by_company(email, company),
+        'shortlisted_applicants_by_company':get_shortlisted_applicants_by_company(email, company),
+        'assessment_stage_applicants_by_company':get_assessment_stage_applicants_by_company(email, company),
+        'interview_stage_applicants_by_company':get_interview_stage_applicants_by_company(email, company),
+        'offered_applicants_by_company':get_offered_applicants_by_company(email, company),
+        'rejected_applicants_by_company':get_rejected_applicants_by_company(email, company),
+        'joined_applicants_by_company':get_joined_applicants_by_company(email, company)
+      
+    }
+    
+    return data
+
+    # Fetch all required data with optimized queries
+    data = {
+        'active_clients': get_companies_by_user(email),
+        'job_openings': get_job(email),
+        'tagged_applicants': get_tagged_applicants(email),
+        'shortlisted_applicants': get_shortlisted_applicants(email),
+        'assessment_stage_applicants': get_assessment_stage_applicants(email),
+        'interview_stage_applicants': get_interview_stage_applicants(email),
+        'offered_applicants': get_offered_applicants(email),
+        'rejected_applicants': get_rejected_applicants(email),
+        'joined_applicants': get_joined_applicants(email)
+    }
+    
+    return data
+
+
+
 
 @frappe.whitelist(allow_guest=False)
 def get_recruiter_dashboard_data(email=None):
@@ -1312,10 +1337,11 @@ def get_recruiter_dashboard_data(email=None):
     statuses = [
         "Tagged",
         "Shortlisted", 
-        "Assessment Stage",
-        "Interview Stage",
+        "Assessment",
+        "Interview",
+        "Interview Reject",
         "Offered",
-        "Rejected",
+        "Offer Drop",
         "Joined"
     ]
 
@@ -1393,8 +1419,8 @@ def get_recruiter_dashboard_data(email=None):
     status_key_map = {
         "Tagged": "tagged_applicants",
         "Shortlisted": "shortlisted_applicants",
-        "Assessment Stage": "assessment_stage_applicants",
-        "Interview Stage": "interview_stage_applicants",
+        "Assessment": "assessment_stage_applicants",
+        "Interview": "interview_stage_applicants",
         "Offered": "offered_applicants",
         "Rejected": "rejected_applicants",
         "Joined": "joined_applicants"
@@ -1436,8 +1462,8 @@ def get_recruiter_dashboard_data(email=None):
     active_pipeline = (
         metrics.get("Tagged", 0) +
         metrics.get("Shortlisted", 0) +
-        metrics.get("Assessment Stage", 0) +
-        metrics.get("Interview Stage", 0)
+        metrics.get("Assessment", 0) +
+        metrics.get("Interview", 0)
     )
     
     summary = {
@@ -1487,10 +1513,11 @@ def get_recruiter_dashboard_data_by_company(email=None, company=None):
     statuses = [
         "Tagged",
         "Shortlisted", 
-        "Assessment Stage",
-        "Interview Stage",
+        "Assessment",
+        "Interview",
+        "Interview Reject",
         "Offered",
-        "Rejected",
+        "Offer Drop",
         "Joined"
     ]
 
@@ -1579,8 +1606,8 @@ def get_recruiter_dashboard_data_by_company(email=None, company=None):
     status_key_map = {
         "Tagged": "tagged_applicants_by_company",
         "Shortlisted": "shortlisted_applicants_by_company",
-        "Assessment Stage": "assessment_stage_applicants_by_company",
-        "Interview Stage": "interview_stage_applicants_by_company",
+        "Assessment": "assessment_stage_applicants_by_company",
+        "Interview": "interview_stage_applicants_by_company",
         "Offered": "offered_applicants_by_company",
         "Rejected": "rejected_applicants_by_company",
         "Joined": "joined_applicants_by_company"
@@ -1629,8 +1656,8 @@ def get_recruiter_dashboard_data_by_company(email=None, company=None):
     active_pipeline = (
         metrics.get("Tagged", 0) +
         metrics.get("Shortlisted", 0) +
-        metrics.get("Assessment Stage", 0) +
-        metrics.get("Interview Stage", 0)
+        metrics.get("Assessment", 0) +
+        metrics.get("Interview", 0)
     )
     
     summary = {
@@ -1767,7 +1794,7 @@ def get_assessment_stage_applicants(email):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Assessment Stage", "owner": email},
+        filters={"status": "Assessment", "owner": email},
         fields=[
             "name", "applicant_name", "email_id", "phone_number", "country",
             "job_title", "designation", "notes", "resume_attachment",
@@ -1786,7 +1813,7 @@ def get_interview_stage_applicants(email):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Interview Stage", "owner": email},
+        filters={"status": "Interview", "owner": email},
         fields=[
             "name", "applicant_name", "email_id", "phone_number", "country",
             "job_title", "designation", "notes", "resume_attachment",
