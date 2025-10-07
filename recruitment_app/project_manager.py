@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 
+
 @frappe.whitelist(allow_guest=False)
 def get_manager_dashboard_data(client=None, recruiter=None, time_period="month"):
     """
