@@ -993,7 +993,7 @@ def get_recruiter_dashboard_data(email=None):
     # Fetch all applicants in one query
     all_applicants = frappe.get_all(
         "Job Applicant",
-        filters={"owner": email},
+        # filters={"owner": email},
         fields=[
             "name",
             "applicant_name",
