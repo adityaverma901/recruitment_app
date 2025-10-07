@@ -30,23 +30,24 @@ def get_manager_dashboard_data(client=None, recruiter=None, time_period="month")
     date_filter = get_date_filter(time_period)
     
     # 1. Get all active recruiters (users with "Recruiter" role)
-    recruiters_list = frappe.db.sql("""
-        SELECT DISTINCT u.name, u.email, u.full_name
-        FROM `tabUser` u
-        INNER JOIN `tabHas Role` hr ON hr.parent = u.name
-        WHERE hr.role = 'Recruiter'
-        AND u.enabled = 1
-        AND hr.parenttype = 'User'
-        ORDER BY u.full_name
-    """, as_dict=1)
+    # recruiters_list = frappe.db.sql("""
+    #     SELECT DISTINCT u.name, u.email, u.full_name
+    #     FROM `tabUser` u
+    #     INNER JOIN `tabHas Role` hr ON hr.parent = u.name
+    #     WHERE hr.role = 'Recruiter'
+    #     AND u.enabled = 1
+    #     AND hr.parenttype = 'User'
+    #     ORDER BY u.full_name
+    # """, as_dict=1)
+
+    recruiters_list = get_recruiters_list()
     
     # Format recruiters for frontend
     recruiters = [
         {
             "id": r.name,
             "name": r.full_name or r.email,
-            "email": r.email,
-            "team": "All"
+            "email": r.email
         }
         for r in recruiters_list
     ]
@@ -210,11 +211,11 @@ def calculate_funnel_data(applicants):
         "Total CV's Uploaded": len(applicants),
         "Tagged": len([a for a in applicants if a.get("status") == "Tagged"]),
         "Shortlisted": len([a for a in applicants if a.get("status") == "Shortlisted"]),
-        "Assessment Stage": len([a for a in applicants if a.get("status") == "Assessment Stage"]),
-        "Interview Stage": len([a for a in applicants if a.get("status") == "Interview Stage"]),
+        "Assessment": len([a for a in applicants if a.get("status") == "Assessment"]),
+        "Interview": len([a for a in applicants if a.get("status") == "Interview"]),
+        "Interview Reject": len([a for a in applicants if a.get("status") == "Interview Reject"]),
         "Offered": len([a for a in applicants if a.get("status") == "Offered"]),
-        "Offer Rejected": len([a for a in applicants if a.get("status") == "Offer Rejected"]),
-        "Rejected": len([a for a in applicants if a.get("status") == "Rejected"]),
+        "Offer Drop": len([a for a in applicants if a.get("status") == "Offer Drop"]),
         "Joined": len([a for a in applicants if a.get("status") == "Joined"])
     }
     
@@ -354,3 +355,82 @@ def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     performance.sort(key=lambda x: x["total_applicants"], reverse=True)
     
     return performance
+
+
+
+def get_recruiters_list():
+    """Get all users with Recruiter role using proper Frappe methods"""
+    
+    # Method 1: Using Frappe's get_all with role filter
+    try:
+        recruiters = frappe.get_all(
+            "User",
+            filters={
+                "enabled": 1,
+                "name": ["in", frappe.get_all(
+                    "Has Role",
+                    filters={"role": "Recruiter", "parenttype": "User"},
+                    fields=["parent"],
+                    distinct=True
+                )]
+            },
+            fields=["name", "email", "full_name"],
+            order_by="full_name"
+        )
+        
+        if recruiters:
+            return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 1: {str(e)}")
+    
+    # Method 2: Alternative query approach
+    try:
+        recruiters = frappe.db.sql("""
+            SELECT DISTINCT u.name, u.email, u.full_name
+            FROM `tabUser` u
+            WHERE u.name IN (
+                SELECT DISTINCT parent 
+                FROM `tabHas Role` 
+                WHERE role = 'Recruiter' 
+                AND parenttype = 'User'
+            )
+            AND u.enabled = 1
+            ORDER BY u.full_name
+        """, as_dict=True)
+        
+        if recruiters:
+            return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 2: {str(e)}")
+    
+    # Method 3: Fallback - get all enabled users and filter by role
+    try:
+        all_users = frappe.get_all(
+            "User",
+            filters={"enabled": 1},
+            fields=["name", "email", "full_name", "roles"]
+        )
+        
+        recruiters = []
+        for user in all_users:
+            user_doc = frappe.get_doc("User", user.name)
+            user_roles = [r.role for r in user_doc.roles]
+            if "Recruiter" in user_roles:
+                recruiters.append({
+                    "name": user.name,
+                    "email": user.email,
+                    "full_name": user.full_name
+                })
+        
+        return recruiters
+    except Exception as e:
+        frappe.log_error(f"Error getting recruiters method 3: {str(e)}")
+    
+    # Method 4: Ultimate fallback - return current user if no recruiters found
+    frappe.log_error("No recruiters found with any method, returning current user")
+    current_user = frappe.session.user
+    return [{
+        "name": current_user,
+        "email": current_user,
+        "full_name": frappe.get_value("User", current_user, "full_name") or current_user
+    }]
