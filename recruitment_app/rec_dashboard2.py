@@ -1052,14 +1052,11 @@
 
 import frappe
 from frappe import _
-from datetime import datetime, timedelta
-import calendar
 
 @frappe.whitelist(allow_guest=False)
-def get_recruiter_dashboard_both(email=None, company=None, time_period="month"):
+def get_recruiter_dashboard_both(email=None, company=None):
     """
     Fetch all recruiter dashboard data in a single API call
-    Enhanced with trends data similar to manager dashboard
     """
     if not email:
         email = frappe.session.user
@@ -1073,273 +1070,11 @@ def get_recruiter_dashboard_both(email=None, company=None, time_period="month"):
         'interview_stage_applicants_by_company': get_interview_stage_applicants_by_company(email, company),
         'interview_reject_applicants_by_company': get_interview_reject_applicants_by_company(email, company),
         'offered_applicants_by_company': get_offered_applicants_by_company(email, company),
-        'offer_drop_applicants_by_company': get_offer_drop_applicants_by_company(email, company),
-        'joined_applicants_by_company': get_joined_applicants_by_company(email, company),
-        # NEW: Add trends data
-        'trends_data': get_recruiter_trends_data(email, company, time_period)
+        'offer_drop_applicants_by_company': get_offer_drop_applicants_by_company(email, company),  # FIXED: Renamed this function
+        'joined_applicants_by_company': get_joined_applicants_by_company(email, company)
     }
     
     return data
-
-
-@frappe.whitelist(allow_guest=False)
-def get_recruiter_trends_data(email=None, company=None, time_period="month"):
-    """
-    Calculate trends data for recruiter dashboard showing applicant progress over time
-    Similar to manager dashboard trends
-    
-    Args:
-        email: Recruiter email (defaults to current user)
-        company: Optional company filter
-        time_period: "week" | "month" | "quarter"
-    
-    Returns:
-        Dictionary with trends data for current quarter
-    """
-    if not email:
-        email = frappe.session.user
-    
-    # Get date filter for current quarter
-    quarter, quarter_start, quarter_end, quarter_months = get_current_quarter_info()
-    now = datetime.now()
-    
-    # Build filters for applicants
-    applicant_filters = {
-        "owner": email,
-        "creation": [">=", quarter_start.strftime("%Y-%m-%d")]
-    }
-    
-    # Apply company filter if provided
-    if company:
-        # Get all job openings for this company
-        job_openings = frappe.get_all(
-            "Job Opening",
-            filters={"company": company},
-            fields=["name"],
-            limit=0
-        )
-        company_job_titles = [job.name for job in job_openings]
-        
-        if company_job_titles:
-            applicant_filters["job_title"] = ["in", company_job_titles]
-        else:
-            # No jobs for this company, return empty trends
-            return {
-                "trends": [],
-                "quarter_info": {
-                    "quarter": quarter,
-                    "start_date": quarter_start.strftime("%Y-%m-%d"),
-                    "end_date": quarter_end.strftime("%Y-%m-%d"),
-                    "months": quarter_months
-                }
-            }
-    
-    # Fetch all applicants for current quarter
-    all_applicants = frappe.get_all(
-        "Job Applicant",
-        filters=applicant_filters,
-        fields=[
-            "name", "applicant_name", "email_id", "phone_number",
-            "job_title", "status", "creation", "modified", "owner"
-        ],
-        limit=0,
-        order_by="creation desc"
-    )
-    
-    # Convert to format similar to manager dashboard
-    formatted_applicants = []
-    for applicant in all_applicants:
-        formatted_applicants.append({
-            "id": applicant.name,
-            "name": applicant.applicant_name,
-            "email": applicant.email_id,
-            "phone": applicant.phone_number,
-            "job_title": applicant.job_title,
-            "status": applicant.status,
-            "appliedDate": applicant.creation.strftime("%Y-%m-%d") if applicant.creation else None,
-            "lastUpdated": applicant.modified.strftime("%Y-%m-%d") if applicant.modified else None,
-            "recruiter": applicant.owner
-        })
-    
-    # Calculate trends based on time period
-    trends = calculate_recruiter_trends(formatted_applicants, time_period, quarter_start, quarter_end, now)
-    
-    # Calculate summary metrics
-    metrics = calculate_recruiter_metrics(formatted_applicants)
-    
-    return {
-        "trends": trends,
-        "metrics": metrics,
-        "quarter_info": {
-            "quarter": quarter,
-            "start_date": quarter_start.strftime("%Y-%m-%d"),
-            "end_date": quarter_end.strftime("%Y-%m-%d"),
-            "months": quarter_months
-        }
-    }
-
-
-def get_current_quarter_info():
-    """
-    Get current quarter information
-    Returns: (quarter_number, quarter_start_date, quarter_end_date, quarter_months)
-    """
-    now = datetime.now()
-    current_month = now.month
-    
-    # Determine quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
-    quarter = (current_month - 1) // 3 + 1
-    
-    # Calculate quarter start month
-    quarter_start_month = (quarter - 1) * 3 + 1
-    
-    # Create quarter start date (first day of first month)
-    quarter_start = datetime(now.year, quarter_start_month, 1, 0, 0, 0, 0)
-    
-    # Calculate quarter end month
-    quarter_end_month = quarter_start_month + 2
-    
-    # Get last day of quarter end month
-    last_day = calendar.monthrange(now.year, quarter_end_month)[1]
-    quarter_end = datetime(now.year, quarter_end_month, last_day, 23, 59, 59, 999999)
-    
-    # Get quarter month names
-    quarter_months = []
-    for i in range(3):
-        month_num = quarter_start_month + i
-        month_name = datetime(now.year, month_num, 1).strftime("%B")
-        quarter_months.append(month_name)
-    
-    return quarter, quarter_start, quarter_end, quarter_months
-
-
-def calculate_recruiter_trends(applicants, time_period, quarter_start, quarter_end, now):
-    """
-    Calculate time-series trends for recruiter dashboard
-    Shows data for CURRENT QUARTER ONLY with 3 different views
-    """
-    trends = []
-    
-    frappe.logger().info(f"=== Calculating Recruiter Trends for {time_period} ===")
-    frappe.logger().info(f"Quarter Start: {quarter_start.strftime('%Y-%m-%d')}")
-    frappe.logger().info(f"Today: {now.strftime('%Y-%m-%d')}")
-    frappe.logger().info(f"Total applicants in quarter: {len(applicants)}")
-    
-    if time_period == "week":
-        # Weekly view - show ALL weeks from quarter start till today
-        days_elapsed = (now - quarter_start).days
-        num_weeks = (days_elapsed // 7) + 1  # +1 for current partial week
-        
-        for i in range(num_weeks):
-            week_start = quarter_start + timedelta(days=7*i)
-            week_end = week_start + timedelta(days=6)
-            
-            # Don't go beyond today
-            if week_end > now:
-                week_end = now
-            
-            # Week label with date range
-            if week_start.month == week_end.month:
-                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.day}"
-            else:
-                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.strftime('%b')} {week_end.day}"
-            
-            # Filter applicants for this week
-            period_applicants = [
-                a for a in applicants
-                if a.get("appliedDate") and 
-                week_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
-            ]
-            
-            trends.append(create_trend_data_point(week_label, period_applicants))
-    
-    elif time_period == "month":
-        # Monthly view - show all 3 months of current quarter
-        quarter_start_month = quarter_start.month
-        
-        for i in range(3):
-            month_num = quarter_start_month + i
-            month_year = now.year
-            
-            # Handle year boundary
-            if month_num > 12:
-                month_num -= 12
-                month_year += 1
-            
-            month_date = datetime(month_year, month_num, 1)
-            month_name = month_date.strftime("%B")
-            
-            # Get start and end of month
-            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            last_day = calendar.monthrange(month_year, month_num)[1]
-            month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-            
-            # If it's current month, only go till today
-            if month_year == now.year and month_num == now.month:
-                month_end = now
-            
-            # Filter applicants for this month
-            period_applicants = [
-                a for a in applicants
-                if a.get("appliedDate") and 
-                month_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= month_end.strftime("%Y-%m-%d")
-            ]
-            
-            trends.append(create_trend_data_point(month_name, period_applicants))
-    
-    else:  # quarterly
-        # Quarterly view - single data point for entire current quarter (till today)
-        quarter_num = (quarter_start.month - 1) // 3 + 1
-        quarter_label = f"Q{quarter_num}"
-        
-        # All applicants are already filtered to current quarter
-        trends.append(create_trend_data_point(quarter_label, applicants))
-    
-    frappe.logger().info(f"Generated {len(trends)} trend data points")
-    
-    return trends
-
-
-def create_trend_data_point(label, period_applicants):
-    """
-    Create a single trend data point with all status counts
-    """
-    return {
-        "period": label,
-        "totalCVUploaded": len(period_applicants),
-        "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-        "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-        "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-        "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-        "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-        "interviewReject": len([a for a in period_applicants if a.get("status") == "Interview Reject"]),
-        "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-        "offerDrop": len([a for a in period_applicants if a.get("status") == "Offer Drop"]),
-        "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-    }
-
-
-def calculate_recruiter_metrics(applicants):
-    """
-    Calculate summary metrics for recruiter dashboard
-    """
-    return {
-        "totalApplicants": len(applicants),
-        "open": len([a for a in applicants if a.get("status") == "Open"]),
-        "tagged": len([a for a in applicants if a.get("status") == "Tagged"]),
-        "shortlisted": len([a for a in applicants if a.get("status") == "Shortlisted"]),
-        "assessment": len([a for a in applicants if a.get("status") == "Assessment"]),
-        "interview": len([a for a in applicants if a.get("status") == "Interview"]),
-        "interviewReject": len([a for a in applicants if a.get("status") == "Interview Reject"]),
-        "offered": len([a for a in applicants if a.get("status") == "Offered"]),
-        "offerDrop": len([a for a in applicants if a.get("status") == "Offer Drop"]),
-        "joined": len([a for a in applicants if a.get("status") == "Joined"])
-    }
-
-
-# ============================================================================
-# EXISTING FUNCTIONS - UNCHANGED
-# ============================================================================
 
 @frappe.whitelist(allow_guest=False)
 def get_jobs_by_company(email, company=None):
@@ -1357,7 +1092,7 @@ def get_jobs_by_company(email, company=None):
         "ToDo",
         filters=filters,
         fields=["custom_company", "custom_job_title"],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="custom_company asc"
     )
 
@@ -1382,6 +1117,7 @@ def get_tagged_applicants_by_company(email, company=None):
     if not email:
         frappe.throw(_("Email is required"))
 
+    # First, fetch Job Openings for the company filter (if provided)
     job_filters = {}
     if company:
         job_filters["company"] = company
@@ -1390,11 +1126,13 @@ def get_tagged_applicants_by_company(email, company=None):
         "Job Opening",
         filters=job_filters,
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
 
+    # Build a map of job_name -> company
     job_map = {job.name: job.company for job in job_openings}
 
+    # Fetch all tagged applicants for the user
     applicants = frappe.get_all(
         "Job Applicant",
         filters={
@@ -1407,7 +1145,7 @@ def get_tagged_applicants_by_company(email, company=None):
             "email_id",
             "phone_number",
             "country",
-            "job_title",
+            "job_title",  # Link to Job Opening
             "designation",
             "notes",
             "resume_attachment",
@@ -1415,16 +1153,17 @@ def get_tagged_applicants_by_company(email, company=None):
             "lower_range",
             "upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
     result = {}
 
     for applicant in applicants:
-        job_id = applicant.job_title
+        job_id = applicant.job_title  # Linked Job Opening
         company_name = job_map.get(job_id, "Unknown Company")
 
+        # Skip if company filter is applied and does not match
         if company and company_name != company:
             continue
 
@@ -1449,7 +1188,7 @@ def get_shortlisted_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1461,7 +1200,7 @@ def get_shortlisted_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1491,7 +1230,7 @@ def get_assessment_stage_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1503,7 +1242,7 @@ def get_assessment_stage_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1519,7 +1258,6 @@ def get_assessment_stage_applicants_by_company(email, company=None):
 
     return {"applicants_by_company": result}
 
-
 @frappe.whitelist(allow_guest=False)
 def get_interview_stage_applicants_by_company(email, company=None):
     if not email:
@@ -1533,7 +1271,7 @@ def get_interview_stage_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1545,7 +1283,7 @@ def get_interview_stage_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1575,7 +1313,7 @@ def get_interview_reject_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1587,7 +1325,7 @@ def get_interview_reject_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1602,7 +1340,6 @@ def get_interview_reject_applicants_by_company(email, company=None):
         result[company_name].append(applicant)
 
     return {"applicants_by_company": result}
-
 
 @frappe.whitelist(allow_guest=False)
 def get_offered_applicants_by_company(email, company=None):
@@ -1617,7 +1354,7 @@ def get_offered_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1629,7 +1366,7 @@ def get_offered_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1647,7 +1384,7 @@ def get_offered_applicants_by_company(email, company=None):
 
 
 @frappe.whitelist(allow_guest=False)
-def get_offer_drop_applicants_by_company(email, company=None):
+def get_offer_drop_applicants_by_company(email, company=None):  # FIXED: Renamed function
     """
     Fetch applicants with status 'Offer Drop' filtered by company
     """
@@ -1668,7 +1405,7 @@ def get_offer_drop_applicants_by_company(email, company=None):
 
     applicants = frappe.get_all(
         "Job Applicant",
-        filters={"status": "Offer Drop", "owner": email},
+        filters={"status": "Offer Drop", "owner": email},  # FIXED: Correct status
         fields=[
             "name","applicant_name","email_id","phone_number","country",
             "job_title","designation","notes","resume_attachment","resume_link",
@@ -1689,7 +1426,6 @@ def get_offer_drop_applicants_by_company(email, company=None):
         result[company_name].append(applicant)
 
     return {"applicants_by_company": result}
-
 
 @frappe.whitelist(allow_guest=False)
 def get_joined_applicants_by_company(email, company=None):
@@ -1704,7 +1440,7 @@ def get_joined_applicants_by_company(email, company=None):
         "Job Opening", 
         filters=job_filters, 
         fields=["name", "company"],
-        limit=0
+        limit=0  # CHANGED: Added limit=0 to remove default 20 record limit
     )
     job_map = {job.name: job.company for job in job_openings}
 
@@ -1716,7 +1452,7 @@ def get_joined_applicants_by_company(email, company=None):
             "job_title","designation","notes","resume_attachment","resume_link",
             "lower_range","upper_range"
         ],
-        limit=0,
+        limit=0,  # CHANGED: Added limit=0 to remove default 20 record limit
         order_by="creation desc"
     )
 
@@ -1731,6 +1467,7 @@ def get_joined_applicants_by_company(email, company=None):
         result[company_name].append(applicant)
 
     return {"applicants_by_company": result}
+
 
 
 # Remove or fix the duplicate get_rejected_applicants_by_company function
