@@ -34,7 +34,7 @@ def get_recruiter_dashboard_both(email=None, company=None, time_period="month"):
 def get_recruiter_trends_data(email=None, company=None, time_period="month"):
     """
     Calculate trends data for recruiter dashboard showing applicant progress over time
-    Shows data for CURRENT QUARTER ONLY with 3 different views
+    Similar to manager dashboard trends
     
     Args:
         email: Recruiter email (defaults to current user)
@@ -51,10 +51,10 @@ def get_recruiter_trends_data(email=None, company=None, time_period="month"):
     quarter, quarter_start, quarter_end, quarter_months = get_current_quarter_info()
     now = datetime.now()
     
-    # Build filters for applicants - only till today (not future dates)
+    # Build filters for applicants
     applicant_filters = {
         "owner": email,
-        "creation": ["between", [quarter_start.strftime("%Y-%m-%d"), now.strftime("%Y-%m-%d")]]
+        "creation": [">=", quarter_start.strftime("%Y-%m-%d")]
     }
     
     # Apply company filter if provided
@@ -74,17 +74,15 @@ def get_recruiter_trends_data(email=None, company=None, time_period="month"):
             # No jobs for this company, return empty trends
             return {
                 "trends": [],
-                "metrics": create_empty_metrics(),
                 "quarter_info": {
                     "quarter": quarter,
                     "start_date": quarter_start.strftime("%Y-%m-%d"),
                     "end_date": quarter_end.strftime("%Y-%m-%d"),
-                    "months": quarter_months,
-                    "current_date": now.strftime("%Y-%m-%d")
+                    "months": quarter_months
                 }
             }
     
-    # Fetch all applicants for current quarter till today
+    # Fetch all applicants for current quarter
     all_applicants = frappe.get_all(
         "Job Applicant",
         filters=applicant_filters,
@@ -124,8 +122,7 @@ def get_recruiter_trends_data(email=None, company=None, time_period="month"):
             "quarter": quarter,
             "start_date": quarter_start.strftime("%Y-%m-%d"),
             "end_date": quarter_end.strftime("%Y-%m-%d"),
-            "months": quarter_months,
-            "current_date": now.strftime("%Y-%m-%d")
+            "months": quarter_months
         }
     }
 
@@ -168,133 +165,87 @@ def calculate_recruiter_trends(applicants, time_period, quarter_start, quarter_e
     """
     Calculate time-series trends for recruiter dashboard
     Shows data for CURRENT QUARTER ONLY with 3 different views
-    All data is calculated ONLY till current date (not future dates)
     """
     trends = []
     
     frappe.logger().info(f"=== Calculating Recruiter Trends for {time_period} ===")
     frappe.logger().info(f"Quarter Start: {quarter_start.strftime('%Y-%m-%d')}")
     frappe.logger().info(f"Today: {now.strftime('%Y-%m-%d')}")
-    frappe.logger().info(f"Total applicants in quarter till today: {len(applicants)}")
+    frappe.logger().info(f"Total applicants in quarter: {len(applicants)}")
     
     if time_period == "week":
         # Weekly view - show ALL weeks from quarter start till today
-        trends = calculate_weekly_trends(applicants, quarter_start, now)
+        days_elapsed = (now - quarter_start).days
+        num_weeks = (days_elapsed // 7) + 1  # +1 for current partial week
+        
+        for i in range(num_weeks):
+            week_start = quarter_start + timedelta(days=7*i)
+            week_end = week_start + timedelta(days=6)
+            
+            # Don't go beyond today
+            if week_end > now:
+                week_end = now
+            
+            # Week label with date range
+            if week_start.month == week_end.month:
+                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.day}"
+            else:
+                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.strftime('%b')} {week_end.day}"
+            
+            # Filter applicants for this week
+            period_applicants = [
+                a for a in applicants
+                if a.get("appliedDate") and 
+                week_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
+            ]
+            
+            trends.append(create_trend_data_point(week_label, period_applicants))
     
     elif time_period == "month":
-        # Monthly view - show all 3 months of current quarter (till today for current month)
-        trends = calculate_monthly_trends(applicants, quarter_start, now)
+        # Monthly view - show all 3 months of current quarter
+        quarter_start_month = quarter_start.month
+        
+        for i in range(3):
+            month_num = quarter_start_month + i
+            month_year = now.year
+            
+            # Handle year boundary
+            if month_num > 12:
+                month_num -= 12
+                month_year += 1
+            
+            month_date = datetime(month_year, month_num, 1)
+            month_name = month_date.strftime("%B")
+            
+            # Get start and end of month
+            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            last_day = calendar.monthrange(month_year, month_num)[1]
+            month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+            
+            # If it's current month, only go till today
+            if month_year == now.year and month_num == now.month:
+                month_end = now
+            
+            # Filter applicants for this month
+            period_applicants = [
+                a for a in applicants
+                if a.get("appliedDate") and 
+                month_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= month_end.strftime("%Y-%m-%d")
+            ]
+            
+            trends.append(create_trend_data_point(month_name, period_applicants))
     
     else:  # quarterly
         # Quarterly view - single data point for entire current quarter (till today)
-        trends = calculate_quarterly_trends(applicants, quarter_start, now)
+        quarter_num = (quarter_start.month - 1) // 3 + 1
+        quarter_label = f"Q{quarter_num}"
+        
+        # All applicants are already filtered to current quarter
+        trends.append(create_trend_data_point(quarter_label, applicants))
     
     frappe.logger().info(f"Generated {len(trends)} trend data points")
     
     return trends
-
-
-def calculate_weekly_trends(applicants, quarter_start, now):
-    """Calculate weekly trends from quarter start till today"""
-    trends = []
-    
-    # Calculate total weeks from quarter start till today
-    days_elapsed = (now - quarter_start).days
-    num_weeks = (days_elapsed // 7) + 1  # +1 for current partial week
-    
-    for week_num in range(num_weeks):
-        week_start = quarter_start + timedelta(days=7 * week_num)
-        week_end = week_start + timedelta(days=6)
-        
-        # For the current week, end date should be today
-        if week_end > now:
-            week_end = now
-        
-        # Week label with date range
-        if week_start.month == week_end.month:
-            week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.day}"
-        else:
-            week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.strftime('%b')} {week_end.day}"
-        
-        # Filter applicants for this week
-        period_applicants = get_applicants_for_period(applicants, week_start, week_end)
-        
-        trends.append(create_trend_data_point(week_label, period_applicants))
-    
-    return trends
-
-
-def calculate_monthly_trends(applicants, quarter_start, now):
-    """Calculate monthly trends for current quarter months till today"""
-    trends = []
-    quarter_start_month = quarter_start.month
-    
-    for i in range(3):
-        month_num = quarter_start_month + i
-        month_year = now.year
-        
-        # Handle year boundary
-        if month_num > 12:
-            month_num -= 12
-            month_year += 1
-        
-        month_date = datetime(month_year, month_num, 1)
-        month_name = month_date.strftime("%B")
-        
-        # Get start and end of month
-        month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        last_day = calendar.monthrange(month_year, month_num)[1]
-        month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-        
-        # If it's current month, only go till today
-        if month_year == now.year and month_num == now.month:
-            month_end = now
-        
-        # Only include months that have started (not future months)
-        if month_start <= now:
-            # Filter applicants for this month
-            period_applicants = get_applicants_for_period(applicants, month_start, month_end)
-            
-            trends.append(create_trend_data_point(month_name, period_applicants))
-    
-    return trends
-
-
-def calculate_quarterly_trends(applicants, quarter_start, now):
-    """Calculate quarterly trends - single data point for current quarter till today"""
-    trends = []
-    
-    quarter_num = (quarter_start.month - 1) // 3 + 1
-    quarter_label = f"Q{quarter_num}"
-    
-    # All applicants are already filtered to current quarter till today
-    trends.append(create_trend_data_point(quarter_label, applicants))
-    
-    return trends
-
-
-def get_applicants_for_period(applicants, period_start, period_end):
-    """Filter applicants for a specific time period"""
-    period_applicants = []
-    
-    for applicant in applicants:
-        applied_date = applicant.get("appliedDate")
-        if applied_date:
-            try:
-                # Convert string date to datetime for comparison
-                if isinstance(applied_date, str):
-                    applied_date_dt = datetime.strptime(applied_date, "%Y-%m-%d")
-                else:
-                    applied_date_dt = applied_date
-                
-                # Check if applied date falls within the period
-                if period_start.date() <= applied_date_dt.date() <= period_end.date():
-                    period_applicants.append(applicant)
-            except Exception as e:
-                frappe.logger().error(f"Error parsing date {applied_date}: {str(e)}")
-                continue
-    
-    return period_applicants
 
 
 def create_trend_data_point(label, period_applicants):
@@ -334,20 +285,7 @@ def calculate_recruiter_metrics(applicants):
     }
 
 
-def create_empty_metrics():
-    """Create empty metrics when no data is available"""
-    return {
-        "totalApplicants": 0,
-        "open": 0,
-        "tagged": 0,
-        "shortlisted": 0,
-        "assessment": 0,
-        "interview": 0,
-        "interviewReject": 0,
-        "offered": 0,
-        "offerDrop": 0,
-        "joined": 0
-    }
+
 
 
 # ============================================================================
