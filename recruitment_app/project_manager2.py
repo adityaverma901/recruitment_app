@@ -255,12 +255,7 @@ def calculate_job_status(jobs):
 def calculate_monthly_trends(applicants, time_period):
     """
     Calculate time-series trends data with actual date-based distribution
-    
-    - Weekly: Shows last 7 days (daily breakdown)
-    - Monthly: Shows last 4 weeks (7-day intervals: Week 1, Week 2, Week 3, Week 4)
-    - Quarterly: Shows last 3 months (October, November, December for Q4)
-    
-    All data is based on actual applicant creation dates
+    Shows actual month names for quarterly view
     """
     from datetime import datetime, timedelta
     import calendar
@@ -269,20 +264,16 @@ def calculate_monthly_trends(applicants, time_period):
     trends = []
     
     if time_period == "week":
-        # Weekly view - show last 7 days with day names
+        # Weekly view - show days of the week
         for i in range(7):
             day_date = now - timedelta(days=6-i)
-            day_name = day_date.strftime("%a %d")  # e.g., "Mon 07", "Tue 08"
+            day_name = day_date.strftime("%a")  # Mon, Tue, etc.
             
-            # Get start and end of the day
-            day_start = day_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            day_end = day_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-            
-            # Filter applicants created on this specific day
+            # Filter applicants for this specific day
+            day_str = day_date.strftime("%Y-%m-%d")
             period_applicants = [
                 a for a in applicants
-                if a.get("appliedDate") and 
-                day_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= day_end.strftime("%Y-%m-%d")
+                if a.get("appliedDate") == day_str
             ]
             
             trends.append({
@@ -298,17 +289,10 @@ def calculate_monthly_trends(applicants, time_period):
             })
     
     elif time_period == "month":
-        # Monthly view - show last 4 weeks (7-day intervals)
-        # Week 4 is most recent, Week 1 is oldest
+        # Monthly view - show weeks
         for i in range(4):
-            week_number = 4 - i  # 4, 3, 2, 1
-            
-            # Calculate week boundaries
             week_end = now - timedelta(days=7*i)
-            week_start = week_end - timedelta(days=6)  # 7 days total including end day
-            
-            # Format for display
-            week_label = f"Week {week_number}"
+            week_start = week_end - timedelta(days=6)
             
             # Filter applicants for this week
             period_applicants = [
@@ -317,8 +301,8 @@ def calculate_monthly_trends(applicants, time_period):
                 week_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
             ]
             
-            trends.insert(0, {  # Insert at beginning to maintain chronological order
-                "month": week_label,
+            trends.insert(0, {
+                "month": f"Week {4-i}",
                 "totalCVUploaded": len(period_applicants),
                 "open": len([a for a in period_applicants if a.get("status") == "Open"]),
                 "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
@@ -330,35 +314,17 @@ def calculate_monthly_trends(applicants, time_period):
             })
     
     else:  # quarter
-        # Quarterly view - show current quarter (3 months forward from current month)
-        # Example: If today is Oct 8, show Oct, Nov, Dec (Q4)
-        
+        # Quarterly view - show actual month names
         for i in range(3):
-            # Start from current month and go forward
-            month_offset = i  # 0, 1, 2 (current month + next 2 months)
-            
-            # Calculate target month
-            target_month = now.month + month_offset
-            target_year = now.year
-            
-            # Handle year boundary
-            while target_month > 12:
-                target_month -= 12
-                target_year += 1
-            
-            # Create date object for the first day of target month
-            month_date = datetime(target_year, target_month, 1)
-            month_name = month_date.strftime("%B")  # Full month name
+            # Calculate the month date (going back 3 months)
+            month_date = now.replace(day=1) - timedelta(days=30*(2-i))
+            month_name = month_date.strftime("%B")  # Full month name (e.g., "October")
             
             # Get start and end of the month
-            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_start = month_date.replace(day=1)
+            # Get last day of month
             last_day = calendar.monthrange(month_date.year, month_date.month)[1]
-            month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-            
-            # If it's the current month, only go up to today
-            # For future months, we'll have 0 data (which is correct)
-            if target_year == now.year and target_month == now.month:
-                month_end = now
+            month_end = month_date.replace(day=last_day)
             
             # Filter applicants for this month
             period_applicants = [
@@ -379,121 +345,12 @@ def calculate_monthly_trends(applicants, time_period):
                 "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
             })
     
-    return trends
-
-
-def calculate_monthly_trends_with_debug(applicants, time_period):
-    """
-    Enhanced version with debug logging to verify data accuracy
-    """
-    from datetime import datetime, timedelta
-    import calendar
-    
-    now = datetime.now()
-    trends = []
-    
-    frappe.logger().info(f"=== Calculating Trends for {time_period} ===")
-    frappe.logger().info(f"Current date: {now.strftime('%Y-%m-%d')}")
-    frappe.logger().info(f"Total applicants to process: {len(applicants)}")
-    
-    if time_period == "week":
-        for i in range(7):
-            day_date = now - timedelta(days=6-i)
-            day_name = day_date.strftime("%a %d")
-            day_start = day_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            day_end = day_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-            
-            period_applicants = [
-                a for a in applicants
-                if a.get("appliedDate") and 
-                day_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= day_end.strftime("%Y-%m-%d")
-            ]
-            
-            frappe.logger().info(f"{day_name}: {len(period_applicants)} applicants")
-            
-            trends.append({
-                "month": day_name,
-                "totalCVUploaded": len(period_applicants),
-                "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-                "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-                "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-                "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-                "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-                "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-                "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-            })
-    
-    elif time_period == "month":
-        for i in range(4):
-            week_number = 4 - i
-            week_end = now - timedelta(days=7*i)
-            week_start = week_end - timedelta(days=6)
-            week_label = f"Week {week_number}"
-            
-            period_applicants = [
-                a for a in applicants
-                if a.get("appliedDate") and 
-                week_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
-            ]
-            
-            frappe.logger().info(f"{week_label} ({week_start.strftime('%Y-%m-%d')} to {week_end.strftime('%Y-%m-%d')}): {len(period_applicants)} applicants")
-            
-            trends.insert(0, {
-                "month": week_label,
-                "totalCVUploaded": len(period_applicants),
-                "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-                "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-                "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-                "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-                "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-                "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-                "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-            })
-    
-    else:  # quarter
-        for i in range(3):
-            month_offset = i
-            target_month = now.month + month_offset
-            target_year = now.year
-            
-            while target_month > 12:
-                target_month -= 12
-                target_year += 1
-            
-            month_date = datetime(target_year, target_month, 1)
-            month_name = month_date.strftime("%B")
-            
-            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            last_day = calendar.monthrange(month_date.year, month_date.month)[1]
-            month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-            
-            if target_year == now.year and target_month == now.month:
-                month_end = now
-            # For future months, month_end stays at end of month (will result in 0 applicants)
-            
-            period_applicants = [
-                a for a in applicants
-                if a.get("appliedDate") and 
-                month_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= month_end.strftime("%Y-%m-%d")
-            ]
-            
-            frappe.logger().info(f"{month_name} {target_year} ({month_start.strftime('%Y-%m-%d')} to {month_end.strftime('%Y-%m-%d')}): {len(period_applicants)} applicants")
-            
-            trends.append({
-                "month": month_name,
-                "totalCVUploaded": len(period_applicants),
-                "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-                "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-                "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-                "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-                "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-                "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-                "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-            })
-    
-    frappe.logger().info(f"=== Trend calculation complete ===")
+    # If no data exists, return empty periods instead of fake cumulative data
+    if all(t["totalCVUploaded"] == 0 for t in trends):
+        return trends
     
     return trends
+
 
 def calculate_recruiter_performance(applicants, recruiters, selected_recruiter):
     """Calculate performance metrics by recruiter"""
