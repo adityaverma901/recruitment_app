@@ -327,7 +327,7 @@ def calculate_monthly_trends(applicants, time_period):
     
     if time_period == "week":
         # Weekly view - show ALL weeks from quarter start till today
-        # Calculate number of weeks from quarter start to today
+        # Display format: "Oct 1-7", "Oct 8-14", "Oct 15-21", etc.
         days_elapsed = (now - quarter_start).days
         num_weeks = (days_elapsed // 7) + 1  # +1 for current partial week
         
@@ -341,8 +341,14 @@ def calculate_monthly_trends(applicants, time_period):
             if week_end > now:
                 week_end = now
             
-            # Week label (e.g., "Week 1", "Week 2")
-            week_label = f"Week {i+1}"
+            # Week label with date range
+            # Format: "Oct 1-7" or "Oct 8-14" or "Nov 1-7"
+            if week_start.month == week_end.month:
+                # Same month: "Oct 1-7"
+                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.day}"
+            else:
+                # Different months: "Oct 29-Nov 4"
+                week_label = f"{week_start.strftime('%b')} {week_start.day}-{week_end.strftime('%b')} {week_end.day}"
             
             # Filter applicants for this week
             period_applicants = [
@@ -351,7 +357,7 @@ def calculate_monthly_trends(applicants, time_period):
                 week_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
             ]
             
-            frappe.logger().info(f"{week_label} ({week_start.strftime('%b %d')} - {week_end.strftime('%b %d')}): {len(period_applicants)} applicants")
+            frappe.logger().info(f"{week_label}: {len(period_applicants)} applicants")
             
             trends.append({
                 "month": week_label,
@@ -432,115 +438,6 @@ def calculate_monthly_trends(applicants, time_period):
     return trends
 
 
-def calculate_monthly_trends_comprehensive(applicants, time_period):
-    """
-    Alternative implementation with even more detailed breakdown options
-    """
-    from datetime import datetime, timedelta
-    import calendar
-    
-    now = datetime.now()
-    quarter, quarter_start, quarter_end, quarter_months = get_current_quarter_info()
-    
-    # Always filter to current quarter first
-    quarter_applicants = [
-        a for a in applicants
-        if a.get("appliedDate") and 
-        quarter_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= now.strftime("%Y-%m-%d")
-    ]
-    
-    trends = []
-    
-    if time_period == "week":
-        # Show every week from quarter start till now
-        current_date = quarter_start
-        week_num = 1
-        
-        while current_date <= now:
-            week_end = current_date + timedelta(days=6)
-            if week_end > now:
-                week_end = now
-            
-            period_applicants = [
-                a for a in quarter_applicants
-                if a.get("appliedDate") and 
-                current_date.strftime("%Y-%m-%d") <= a.get("appliedDate") <= week_end.strftime("%Y-%m-%d")
-            ]
-            
-            # Format: "Week 1 (Oct 1-7)" for clarity
-            date_range = f"{current_date.strftime('%b %d')}-{week_end.strftime('%d')}"
-            week_label = f"Week {week_num}"
-            
-            trends.append({
-                "month": week_label,
-                "dateRange": date_range,  # Extra field for frontend tooltip
-                "totalCVUploaded": len(period_applicants),
-                "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-                "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-                "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-                "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-                "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-                "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-                "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-            })
-            
-            current_date = week_end + timedelta(days=1)
-            week_num += 1
-    
-    elif time_period == "month":
-        # Show all 3 months of quarter
-        for i, month_name in enumerate(quarter_months):
-            month_num = quarter_start.month + i
-            month_year = now.year
-            
-            if month_num > 12:
-                month_num -= 12
-                month_year += 1
-            
-            month_start = datetime(month_year, month_num, 1, 0, 0, 0, 0)
-            last_day = calendar.monthrange(month_year, month_num)[1]
-            month_end = datetime(month_year, month_num, last_day, 23, 59, 59, 999999)
-            
-            if month_year == now.year and month_num == now.month:
-                month_end = now
-            
-            period_applicants = [
-                a for a in quarter_applicants
-                if a.get("appliedDate") and 
-                month_start.strftime("%Y-%m-%d") <= a.get("appliedDate") <= month_end.strftime("%Y-%m-%d")
-            ]
-            
-            trends.append({
-                "month": month_name,
-                "totalCVUploaded": len(period_applicants),
-                "open": len([a for a in period_applicants if a.get("status") == "Open"]),
-                "tagged": len([a for a in period_applicants if a.get("status") == "Tagged"]),
-                "shortlisted": len([a for a in period_applicants if a.get("status") == "Shortlisted"]),
-                "assessment": len([a for a in period_applicants if a.get("status") == "Assessment"]),
-                "interview": len([a for a in period_applicants if a.get("status") == "Interview"]),
-                "offered": len([a for a in period_applicants if a.get("status") == "Offered"]),
-                "joined": len([a for a in period_applicants if a.get("status") == "Joined"])
-            })
-    
-    else:  # quarterly
-        # Single aggregate for the entire quarter
-        trends.append({
-            "month": f"Q{quarter}",
-            "totalCVUploaded": len(quarter_applicants),
-            "open": len([a for a in quarter_applicants if a.get("status") == "Open"]),
-            "tagged": len([a for a in quarter_applicants if a.get("status") == "Tagged"]),
-            "shortlisted": len([a for a in quarter_applicants if a.get("status") == "Shortlisted"]),
-            "assessment": len([a for a in quarter_applicants if a.get("status") == "Assessment"]),
-            "interview": len([a for a in quarter_applicants if a.get("status") == "Interview"]),
-            "offered": len([a for a in quarter_applicants if a.get("status") == "Offered"]),
-            "joined": len([a for a in quarter_applicants if a.get("status") == "Joined"])
-        })
-    
-    return trends
-
-
-
-    
 def calculate_monthly_trends_with_debug(applicants, time_period):
     """
     Enhanced version with debug logging to verify data accuracy
