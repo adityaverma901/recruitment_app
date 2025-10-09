@@ -355,36 +355,58 @@ def create_empty_metrics():
 # ============================================================================
 
 @frappe.whitelist(allow_guest=False)
-def get_jobs_by_company(email, company=None):
+def get_job_openings_with_status(email, company=None):
     """
-    Fetch all job titles from ToDo where allocated_to = given email, optionally filtered by company.
+    Fetch all job openings with filters and separate them by status.
+    
+    Args:
+        email: Created by email (required)
+        company: Filter by company (optional)
+    
+    Returns:
+        dict: Job openings grouped by status with counts
     """
     if not email:
         frappe.throw(_("Email is required"))
-
-    filters = {"owner": email}
+    
+    # Build filters
+    filters = {"created_by": email}
     if company:
-        filters["company"] = company
-
-    todos = frappe.get_all(
+        filters["custom_company"] = company
+    
+    # Fetch all job openings
+    jobs = frappe.get_all(
         "Job Opening",
         filters=filters,
-        fields=["company", "status"],
+        fields=["name", "job_title", "company", "status", "creation"],
         limit=0,
-        order_by="company asc"
+        order_by="creation desc"
     )
-
-    result = {}
-    for todo in todos:
-        comp = todo.company or "Unknown Company"
-        status= todo.status or "No Status"
-
-        if comp not in result:
-            result[comp] = []
-        result[comp].append(status)
-
-    return {"jobs_by_company": result}
-
+    
+    # Separate jobs by status
+    jobs_by_status = {
+        "Open": [],
+        "Closed": [],
+        "Cancelled": []
+    }
+    
+    for job in jobs:
+        status = job.get("status", "Open")
+        if status not in jobs_by_status:
+            jobs_by_status[status] = []
+        jobs_by_status[status].append(job)
+    
+    # Calculate counts
+    status_counts = {
+        status: len(job_list) 
+        for status, job_list in jobs_by_status.items()
+    }
+    
+    return {
+        "total_jobs": len(jobs),
+        "jobs_by_status": jobs_by_status,
+        "status_counts": status_counts
+    }
 
 @frappe.whitelist(allow_guest=False)
 def get_tagged_applicants_by_company(email, company=None):
