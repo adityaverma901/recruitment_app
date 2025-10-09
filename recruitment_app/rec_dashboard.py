@@ -372,7 +372,7 @@ def get_job_openings_with_status(email, company=None):
     # Build filters
     filters = {"owner": email}
     if company:
-        filters["custom_company"] = company
+        filters["company"] = company
     
     # Fetch all job openings
     jobs = frappe.get_all(
