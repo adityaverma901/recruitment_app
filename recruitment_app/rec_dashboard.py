@@ -370,7 +370,7 @@ def get_job_openings_with_status(email, company=None):
         frappe.throw(_("Email is required"))
     
     # Build filters
-    filters = {"created_by": email}
+    filters = {"owner": email}
     if company:
         filters["custom_company"] = company
     
