@@ -43,7 +43,7 @@ import frappe
 import json
 
 @frappe.whitelist(allow_guest=False)
-def bulk_create_assessments(applicants, scheduled_on, custom_expiry_date, assessment_link, assessment_round="Mechanical", interviewers=None):
+def bulk_create_assessments(applicants, scheduled_on, custom_expiry_date, assessment_link, interviewers=None):
     """
     Create multiple assessments for a list of applicants
     """
@@ -60,7 +60,6 @@ def bulk_create_assessments(applicants, scheduled_on, custom_expiry_date, assess
         for applicant in applicants:
             doc = frappe.get_doc({
                 "doctype": "Assessment",
-                "assessment_round": assessment_round,
                 "job_applicant": applicant,
                 "scheduled_on": scheduled_on,
                 "custom_expiry_date": custom_expiry_date,
