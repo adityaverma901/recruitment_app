@@ -362,26 +362,26 @@ def get_jobs_by_company(email, company=None):
     if not email:
         frappe.throw(_("Email is required"))
 
-    filters = {"allocated_to": email}
+    filters = {"created_by": email}
     if company:
-        filters["custom_company"] = company
+        filters["company"] = company
 
     todos = frappe.get_all(
-        "ToDo",
+        "Job Opening",
         filters=filters,
-        fields=["custom_company", "custom_job_title"],
+        fields=["company", "status"],
         limit=0,
-        order_by="custom_company asc"
+        order_by="company asc"
     )
 
     result = {}
     for todo in todos:
-        comp = todo.custom_company or "Unknown Company"
-        job_title = todo.custom_job_title or "No Job Title"
+        comp = todo.company or "Unknown Company"
+        status= todo.status or "No Status"
 
         if comp not in result:
             result[comp] = []
-        result[comp].append(job_title)
+        result[comp].append(status)
 
     return {"jobs_by_company": result}
 
