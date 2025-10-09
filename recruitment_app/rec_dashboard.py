@@ -14,7 +14,7 @@ def get_recruiter_dashboard_both(email=None, company=None, time_period="month"):
     
     # Fetch all required data with optimized queries
     data = {
-        'jobs_opening_by_company': get_jobs_by_company(email, company),
+        'jobs_opening_by_company': get_job_openings_with_status(email, company),
         'tagged_applicants_by_company': get_tagged_applicants_by_company(email, company),
         'shortlisted_applicants_by_company': get_shortlisted_applicants_by_company(email, company),
         'assessment_stage_applicants_by_company': get_assessment_stage_applicants_by_company(email, company),
