@@ -362,7 +362,7 @@ def get_jobs_by_company(email, company=None):
     if not email:
         frappe.throw(_("Email is required"))
 
-    filters = {"created_by": email}
+    filters = {"owner": email}
     if company:
         filters["company"] = company
 
