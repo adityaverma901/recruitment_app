@@ -1,65 +1,64 @@
 import frappe
 
-@frappe.whitelist()
-def get_all_applicants(owner=None, limit_start=0, limit_page_length=20):
+@frappe.whitelist(allow_guest=False)
+def get_all_applicants(owner=None):
     """
-    Fetch all Job Applicant records with optional filter by owner.
-    Supports pagination and sorts by creation (DESC).
+    Fetch all Job Applicants with their experience and education details.
+    Optionally filter by owner (email).
     """
 
-    limit_start = int(limit_start)
-    limit_page_length = int(limit_page_length)
-
-    # 🧮 Count total applicants
-    count_query = "SELECT COUNT(*) as total FROM `tabJob Applicant`"
-    count_params = []
-
+    filters = {}
     if owner:
-        count_query += " WHERE owner = %s"
-        count_params.append(owner)
+        filters["owner"] = owner
 
-    total_count = frappe.db.sql(count_query, tuple(count_params), as_dict=True)[0]["total"]
+    # Fetch main applicant data
+    applicants = frappe.get_all(
+        "Job Applicant",
+        filters=filters,
+        fields=[
+            "name",
+            "applicant_name",
+            "email_id",
+            "phone_number",
+            "country",
+            "job_title",
+            "designation",
+            "status",
+            "resume_attachment",
+            "custom_company_name",
+            "creation",
+            "owner"
+        ],
+        order_by="creation desc"
+    )
 
-    # 📦 Fetch applicants
-    query = """
-        SELECT
-            name,
-            applicant_name,
-            email_id,
-            phone_number,
-            country,
-            job_title,
-            designation,
-            status,
-            resume_attachment,
-            custom_experience,
-            custom_education,
-            creation,
-            custom_company_name,
-            owner
-        FROM `tabJob Applicant`
-    """
+    # For each applicant, fetch child tables (experience and education)
+    for applicant in applicants:
+        # Fetch Experience child table
+        applicant["custom_experience"] = frappe.get_all(
+            "Experience",
+            filters={"parent": applicant.name, "parenttype": "Job Applicant"},
+            fields=[
+                "company_name",
+                "designation",
+                "start_date",
+                "current_company"
+            ],
+            order_by="idx asc"
+        )
 
-    query_params = []
-    if owner:
-        query += " WHERE owner = %s"
-        query_params.append(owner)
+        # Fetch Education child table
+        applicant["custom_education"] = frappe.get_all(
+            "Education",
+            filters={"parent": applicant.name, "parenttype": "Job Applicant"},
+            fields=[
+                "degree",
+                "specialization",
+                "institution",
+                "year_of_passing",
+                "percentagecgpa"
+            ],
+            order_by="idx asc"
+        )
 
-    query += " ORDER BY creation DESC LIMIT %s, %s"
-    query_params.extend([limit_start, limit_page_length])
-
-    applicants = frappe.db.sql(query, tuple(query_params), as_dict=True)
-
-    # 📖 Pagination metadata
-    total_pages = (total_count + limit_page_length - 1) // limit_page_length
-    current_page = (limit_start // limit_page_length) + 1
-
-    return {
-        "data": applicants,
-        "total": total_count,
-        "page": current_page,
-        "page_size": limit_page_length,
-        "total_pages": total_pages,
-        "has_next": current_page < total_pages,
-        "has_prev": current_page > 1
-    }
+    return applicants
