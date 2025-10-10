@@ -1,21 +1,21 @@
 import frappe
 
 @frappe.whitelist()
-def get_lead_dashboard_summary(owner=None, start_date=None, end_date=None):
+def get_lead_summary(owner=None, start_date=None, end_date=None):
     """
     📊 Lead Summary API
     Returns:
       - total_leads: count of all leads
       - total_deal_value: sum of custom_deal_value
-      - onboarded_count: count where status = 'Onboarded'
-      - onboarded_deal_value: sum of custom_deal_value where status = 'Onboarded'
+      - onboarded_count: count where custom_stage = 'Onboarded'
+      - onboarded_deal_value: sum of custom_deal_value where custom_stage = 'Onboarded'
     Optional filters:
       - owner (email)
       - start_date (YYYY-MM-DD)
       - end_date (YYYY-MM-DD)
     """
 
-    # ✅ Build dynamic filter conditions
+    # ✅ Build dynamic filters
     conditions = []
     params = []
 
@@ -44,8 +44,8 @@ def get_lead_dashboard_summary(owner=None, start_date=None, end_date=None):
         {where_clause}
     """, params, as_dict=True)[0]
 
-    # ✅ 2️⃣ Onboarded Leads + Deal Value
-    onboarded_conditions = ["status = 'Onboarded'"]
+    # ✅ 2️⃣ Onboarded Leads (based on custom_stage)
+    onboarded_conditions = ["custom_stage = 'Onboarded'"]
     onboarded_params = []
 
     if owner:
@@ -72,7 +72,7 @@ def get_lead_dashboard_summary(owner=None, start_date=None, end_date=None):
         {onboarded_where}
     """, onboarded_params, as_dict=True)[0]
 
-    # 🧾 3️⃣ Combine everything
+    # 🧾 3️⃣ Combine and return
     return {
         "data": {
             "total_leads": total_stats.total_leads,
