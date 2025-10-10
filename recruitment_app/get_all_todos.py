@@ -166,7 +166,7 @@ def get_all_todos(email=None, owner=None, limit_start=0, limit_page_length=20):
     todos = frappe.db.sql(query, tuple(query_params), as_dict=True)
 
     # --- Filters for all data (ignore pagination) ---
-    filter_query = "SELECT company_name, contact_name, contact_email, stage, offering FROM `tabToDo`"
+    filter_query = " SELECT custom_company, allocated_to, status, custom_job_title FROM `tabToDo`"
     filter_conditions = []
     filter_params = []
 
@@ -183,10 +183,10 @@ def get_all_todos(email=None, owner=None, limit_start=0, limit_page_length=20):
     all_records = frappe.db.sql(filter_query, tuple(filter_params), as_dict=True)
 
     filters = {
-        "company_names": list({r["company_name"] for r in all_records if r["company_name"]}),
-        "contacts": [{"name": r["contact_name"], "email": r["contact_email"]} for r in all_records if r["contact_name"] and r["contact_email"]],
-        "stages": list({r["stage"] for r in all_records if r["stage"]}),
-        "offerings": list({r["offering"] for r in all_records if r["offering"]}),
+    "companies": list({r["custom_company"] for r in all_records if r["custom_company"]}),
+    "contacts": [{"name": r["allocated_to"], "email": None} for r in all_records if r["allocated_to"]],
+    "stages": list({r["status"] for r in all_records if r["status"]}),
+    "offerings": list({r["custom_job_title"] for r in all_records if r["custom_job_title"]}),
     }
 
     # --- Pagination info ---
