@@ -80,7 +80,7 @@ import frappe
 from collections import defaultdict
 
 @frappe.whitelist()
-def get_applicants_with_resumes(owner=None):
+def get_unique_candidates(owner=None):
     """
     Fetch Job Applicants grouped by email.
     Each applicant entry includes their resume per job application.
