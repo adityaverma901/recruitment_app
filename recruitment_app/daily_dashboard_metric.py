@@ -61,6 +61,53 @@ def get_active_clients_count():
     return active_clients[0].count if active_clients else 0
 
 
+# def get_total_open_roles():
+#     """
+#     Get total open roles grouped by company and designation.
+    
+#     Data is fetched from Staffing Plan doctype and its child table staffing_details.
+    
+#     Returns:
+#         list: List of dictionaries containing company, designation, and vacancies
+#     """
+#     open_roles = frappe.db.sql("""
+#         SELECT 
+#             sp.company,
+#             sd.designation,
+#             sd.vacancies
+#         FROM `tabStaffing Plan` sp
+#         INNER JOIN `tabStaffing Plan Detail` sd ON sd.parent = sp.name
+#         WHERE sp.docstatus = 1
+#         AND sd.vacancies > 0
+#         ORDER BY sp.company, sd.designation
+#     """, as_dict=True)
+    
+#     # Group by company for better readability
+#     company_wise_roles = {}
+#     total_vacancies = 0
+    
+#     for role in open_roles:
+#         company = role.company
+#         if company not in company_wise_roles:
+#             company_wise_roles[company] = {
+#                 "company": company,
+#                 "roles": [],
+#                 "total_vacancies": 0
+#             }
+        
+#         company_wise_roles[company]["roles"].append({
+#             "designation": role.designation,
+#             "vacancies": role.vacancies
+#         })
+#         company_wise_roles[company]["total_vacancies"] += role.vacancies
+#         total_vacancies += role.vacancies
+    
+#     return {
+#         "total_vacancies": total_vacancies,
+#         "companies": list(company_wise_roles.values())
+#     }
+
+
 def get_total_open_roles():
     """
     Get total open roles grouped by company and designation.
@@ -71,40 +118,13 @@ def get_total_open_roles():
         list: List of dictionaries containing company, designation, and vacancies
     """
     open_roles = frappe.db.sql("""
-        SELECT 
-            sp.company,
-            sd.designation,
-            sd.vacancies
-        FROM `tabStaffing Plan` sp
-        INNER JOIN `tabStaffing Plan Detail` sd ON sd.parent = sp.name
-        WHERE sp.docstatus = 1
-        AND sd.vacancies > 0
-        ORDER BY sp.company, sd.designation
+        SELECT COUNT(*),
+        FROM `tabJob Opening`
+        WHERE status != 'closed'
     """, as_dict=True)
-    
-    # Group by company for better readability
-    company_wise_roles = {}
-    total_vacancies = 0
-    
-    for role in open_roles:
-        company = role.company
-        if company not in company_wise_roles:
-            company_wise_roles[company] = {
-                "company": company,
-                "roles": [],
-                "total_vacancies": 0
-            }
         
-        company_wise_roles[company]["roles"].append({
-            "designation": role.designation,
-            "vacancies": role.vacancies
-        })
-        company_wise_roles[company]["total_vacancies"] += role.vacancies
-        total_vacancies += role.vacancies
-    
     return {
-        "total_vacancies": total_vacancies,
-        "companies": list(company_wise_roles.values())
+        "open_roles": open_roles
     }
 
 
