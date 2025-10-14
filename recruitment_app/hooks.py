@@ -40,7 +40,7 @@ scheduler_events = {
     "cron": {
         # Testing: Run every 2 minutes
         "*/2 * * * *": [
-            "recruitment_app.tasks.daily_api_data_sync"
+            "recruitment_app.daily_dashboard_logs.daily_api_data_sync"
         ]
         
         # Production: Uncomment below and comment above after testing
