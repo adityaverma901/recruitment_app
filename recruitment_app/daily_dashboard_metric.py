@@ -51,9 +51,9 @@ def get_active_clients_count():
         int: Count of active clients
     """
     active_clients = frappe.db.sql("""
-        SELECT COUNT(DISTINCT l.name) as count
+        SELECT COUNT(l.company_name) as count
         FROM `tabLead` l
-        INNER JOIN `tabJob Opening` jo ON jo.company = l.name
+        INNER JOIN `tabJob Opening` jo ON jo.company = l.company_name
         WHERE l.custom_stage IN ('Onboarded', 'Contract')
         AND jo.status = 'Open'
     """, as_dict=True)
@@ -74,9 +74,7 @@ def get_total_open_roles():
         SELECT 
             sp.company,
             sd.designation,
-            sd.vacancies,
-            sp.from_date,
-            sp.to_date
+            sd.vacancies
         FROM `tabStaffing Plan` sp
         INNER JOIN `tabStaffing Plan Detail` sd ON sd.parent = sp.name
         WHERE sp.docstatus = 1
