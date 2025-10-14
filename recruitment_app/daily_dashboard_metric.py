@@ -108,9 +108,9 @@ def get_offers_accepted(date):
         int: Count of job offers with status 'Accepted' on the given date
     """
     offers = frappe.db.sql("""
-        SELECT COUNT(*) as count
-        FROM `tabJob Offer`
-        WHERE status = 'Accepted'
+        SELECT COUNT(DISTINCT name) as count
+        FROM `tabJob Applicant`
+        WHERE status = 'Offered'
         AND DATE(modified) = %s
     """, (date,), as_dict=True)
     
