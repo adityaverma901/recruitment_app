@@ -54,7 +54,7 @@ def get_active_clients_count():
         SELECT COUNT(DISTINCT l.name) as count
         FROM `tabLead` l
         INNER JOIN `tabJob Opening` jo ON jo.company = l.name
-        WHERE l.status IN ('Onboarded', 'Contract')
+        WHERE l.custom_stage IN ('Onboarded', 'Contract')
         AND jo.status = 'Open'
     """, as_dict=True)
     
@@ -165,7 +165,7 @@ def get_joiners_count(date):
     joiners = frappe.db.sql("""
         SELECT COUNT(DISTINCT name) as count
         FROM `tabJob Applicant`
-        WHERE status = 'Accepted'
+        WHERE status = 'Joined'
         AND DATE(modified) = %s
     """, (date,), as_dict=True)
     
