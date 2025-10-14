@@ -51,7 +51,7 @@ def get_active_clients_count():
         int: Count of active clients
     """
     active_clients = frappe.db.sql("""
-        SELECT COUNT(l.company_name) as count
+        SELECT COUNT(DISTINCT l.company_name) as count
         FROM `tabLead` l
         INNER JOIN `tabJob Opening` jo ON jo.company = l.company_name
         WHERE l.custom_stage IN ('Onboarded', 'Contract')
