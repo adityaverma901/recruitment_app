@@ -33,7 +33,8 @@ doc_events = {
 }
 override_doctype_class = {
     "Company": "recruitment_app.unique_abbr.CustomCompany"
-},
+}
+
 scheduler_events = {
     # Run daily at 11:59 PM
     "cron": {
