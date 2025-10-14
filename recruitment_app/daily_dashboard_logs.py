@@ -4,6 +4,7 @@ import frappe
 import requests
 from frappe.utils import now_datetime, getdate, get_first_day, formatdate
 import json
+from requests.auth import HTTPBasicAuth
 
 def daily_api_data_sync():
     """
@@ -13,9 +14,9 @@ def daily_api_data_sync():
     try:
         # Your API endpoint
         api_url = "https://recruiter.gennextit.com/api/method/recruitment_app.daily_dashboard_metric.get_daily_dashboard_data"
-        
+        auth = HTTPBasicAuth('aditya@hevhire.com', 'aditya@hevhire')
         # Make API request
-        response = requests.get(api_url, timeout=30)
+        response = requests.get(api_url,auth=auth, timeout=30)
         response.raise_for_status()
         
         # Parse response data
