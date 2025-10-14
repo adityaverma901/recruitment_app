@@ -118,9 +118,7 @@ def get_total_open_roles():
         list: List of dictionaries containing company, designation, and vacancies
     """
     open_roles = frappe.db.sql("""
-        SELECT COUNT(*),
-        FROM `tabJob Opening`
-        WHERE status != 'closed'
+        SELECT COUNT(*)  FROM `tabJob Opening` WHERE status !='closed'
     """, as_dict=True)
         
     return {
