@@ -38,15 +38,25 @@ scheduler_events = {
     # Run daily at 11:59 PM
     "cron": {
         # Testing: Run every 2 minutes
-        "*/1 * * * *": [
-            "recruitment_app.daily_dashboard_logs.daily_api_data_sync"
+        "*/2 * * * *": [
+            "recruitment_app.tasks.daily_api_data_sync"
         ]
         
         # Production: Uncomment below and comment above after testing
         # "59 23 * * *": [
         #     "recruitment_app.tasks.daily_api_data_sync"
         # ]
-    }
+    },
+    
+    # Alternative: If you want to use daily event (runs at midnight by default)
+    # "daily": [
+    #     "your_app.tasks.daily_api_data_sync"
+    # ],
+    
+    # Or use daily_long (for longer running tasks)
+    # "daily_long": [
+    #     "your_app.tasks.daily_api_data_sync"
+    # ]
 }
 
 # Each item in the list will be shown as an app in the apps page
