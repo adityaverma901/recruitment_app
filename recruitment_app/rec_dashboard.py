@@ -371,7 +371,7 @@ def get_job_openings_with_status(email, company=None):
     
     # Build filters - only get Open status todos
     filters = {
-        "owner": email,
+        "allocated_to": email,
         "status": "Open"
     }
     
