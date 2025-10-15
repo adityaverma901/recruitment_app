@@ -383,7 +383,7 @@ def get_job_openings_with_status(email, company=None):
     open_todo_count = frappe.db.count("ToDo", filters=filters)
     
     return {
-        "open_todo_count": open_todo_count
+        "total_jobs": open_todo_count
     }
 
 @frappe.whitelist(allow_guest=False)
