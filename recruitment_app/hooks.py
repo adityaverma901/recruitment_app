@@ -39,7 +39,7 @@ scheduler_events = {
     # Run daily at 11:59 PM
     "cron": {
         # Testing: Run every 2 minutes
-        "*/2 * * * *": [
+        "59 23 * * *": [
             "recruitment_app.daily_dashboard_logs.daily_api_data_sync"
         ]
         
