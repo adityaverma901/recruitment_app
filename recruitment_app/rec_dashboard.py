@@ -364,7 +364,7 @@ def get_job_openings_with_status(email, company=None):
         company: Filter by reference_type (optional)
     
     Returns:
-        dict: Open todo count
+        dict: Open todo count in same structure as previous Job Opening response
     """
     if not email:
         frappe.throw(_("Email is required"))
@@ -382,10 +382,20 @@ def get_job_openings_with_status(email, company=None):
     # Get count of open todos
     open_todo_count = frappe.db.count("ToDo", filters=filters)
     
+    # Return response in same structure as previous Job Opening function
     return {
-        "total_jobs": open_todo_count
+        "total_jobs": open_todo_count,
+        "jobs_by_status": {
+            "Open": [],
+            "Closed": [],
+            "Cancelled": []
+        },
+        "status_counts": {
+            "Open": open_todo_count,
+            "Closed": 0,
+            "Cancelled": 0
+        }
     }
-
 @frappe.whitelist(allow_guest=False)
 def get_tagged_applicants_by_company(email, company=None):
     """
