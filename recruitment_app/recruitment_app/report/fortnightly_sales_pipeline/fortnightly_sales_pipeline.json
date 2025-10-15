@@ -9,7 +9,7 @@
  "filters": [],
  "idx": 0,
  "is_standard": "No",
- "json": "{\"filters\":[],\"fields\":[[\"name\",\"Lead\"],[\"custom_lead_owner_name\",\"Lead\"],[\"company\",\"Lead\"],[\"industry\",\"Lead\"],[\"website\",\"Lead\"],[\"custom_stage\",\"Lead\"],[\"custom_offerings\",\"Lead\"],[\"custom_estimated_hiring_\",\"Lead\"],[\"custom_average_salary\",\"Lead\"],[\"custom_fee\",\"Lead\"],[\"custom_deal_value\",\"Lead\"],[\"custom_expected_close_date\",\"Lead\"]],\"order_by\":\"`tabLead`.creation desc\",\"page_length\":20,\"column_widths\":{\"name\":120,\"custom_lead_owner_name\":120,\"company\":259,\"industry\":120,\"website\":120,\"custom_stage\":120,\"custom_offerings\":120,\"custom_estimated_hiring_\":120,\"custom_average_salary\":120,\"custom_fee\":120,\"custom_deal_value\":120,\"custom_expected_close_date\":120},\"group_by\":null}",
+ "json": "{\"filters\":[],\"fields\":[[\"name\",\"Lead\"],[\"custom_lead_owner_name\",\"Lead\"],[\"company\",\"Lead\"],[\"industry\",\"Lead\"],[\"website\",\"Lead\"],[\"custom_stage\",\"Lead\"],[\"custom_offerings\",\"Lead\"],[\"custom_estimated_hiring_\",\"Lead\"],[\"custom_average_salary\",\"Lead\"],[\"custom_fee\",\"Lead\"],[\"custom_deal_value\",\"Lead\"],[\"custom_expected_close_date\",\"Lead\"]],\"order_by\":\"`tabLead`.`creation` desc\",\"page_length\":20,\"column_widths\":{\"name\":120,\"custom_lead_owner_name\":120,\"company\":259,\"industry\":120,\"website\":120,\"custom_stage\":120,\"custom_offerings\":120,\"custom_estimated_hiring_\":120,\"custom_average_salary\":120,\"custom_fee\":120,\"custom_deal_value\":120,\"custom_expected_close_date\":120},\"group_by\":null}",
  "letterhead": null,
  "modified": "2025-10-15 16:09:23.092744",
  "modified_by": "2103010015@ipec.org.in",
