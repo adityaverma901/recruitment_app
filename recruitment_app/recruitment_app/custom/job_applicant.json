@@ -816,7 +816,7 @@
    "_comments": null,
    "_liked_by": null,
    "_user_tags": null,
-   "creation": "2025-10-05 12:18:15.455928",
+   "creation": "2025-10-15 14:21:49.768968",
    "default_value": null,
    "doc_type": "Job Applicant",
    "docstatus": 0,
@@ -824,15 +824,15 @@
    "field_name": "status",
    "idx": 0,
    "is_system_generated": 1,
-   "modified": "2025-10-05 12:18:15.455928",
+   "modified": "2025-10-15 14:21:49.768968",
    "modified_by": "Administrator",
    "module": null,
    "name": "Job Applicant-status-options",
    "owner": "Administrator",
    "property": "options",
-   "property_type": "Select",
+   "property_type": "Text",
    "row_name": null,
-   "value": "Open\nTagged\nShortlisted\nAssessment\nInterview\nInterview Reject\nOffered\nOffer Drop\nJoined"
+   "value": "Open\nTagged\nShortlisted\nAssessment\nInterview to be Scheduled\nInterview\nInterview Reject\nOffered\nOffer Drop\nJoined"
   }
  ],
  "sync_on_migrate": 1
