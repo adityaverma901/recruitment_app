@@ -377,7 +377,7 @@ def get_job_openings_with_status(email, company=None):
     
     # If company is provided, use it as reference_type filter
     if company:
-        filters["reference_type"] = company
+        filters["custom_company"] = company
     
     # Get count of open todos
     open_todo_count = frappe.db.count("ToDo", filters=filters)
