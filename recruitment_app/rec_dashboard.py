@@ -357,55 +357,33 @@ def create_empty_metrics():
 @frappe.whitelist(allow_guest=False)
 def get_job_openings_with_status(email, company=None):
     """
-    Fetch all job openings with filters and separate them by status.
+    Fetch count of open todos for the given user.
     
     Args:
         email: Created by email (required)
-        company: Filter by company (optional)
+        company: Filter by reference_type (optional)
     
     Returns:
-        dict: Job openings grouped by status with counts
+        dict: Open todo count
     """
     if not email:
         frappe.throw(_("Email is required"))
     
-    # Build filters
-    filters = {"owner": email}
+    # Build filters - only get Open status todos
+    filters = {
+        "owner": email,
+        "status": "Open"
+    }
+    
+    # If company is provided, use it as reference_type filter
     if company:
-        filters["company"] = company
+        filters["reference_type"] = company
     
-    # Fetch all job openings
-    jobs = frappe.get_all(
-        "Job Opening",
-        filters=filters,
-        fields=["name", "job_title", "company", "status", "creation"],
-        limit=0,
-        order_by="creation desc"
-    )
-    
-    # Separate jobs by status
-    jobs_by_status = {
-        "Open": [],
-        "Closed": [],
-        "Cancelled": []
-    }
-    
-    for job in jobs:
-        status = job.get("status", "Open")
-        if status not in jobs_by_status:
-            jobs_by_status[status] = []
-        jobs_by_status[status].append(job)
-    
-    # Calculate counts
-    status_counts = {
-        status: len(job_list) 
-        for status, job_list in jobs_by_status.items()
-    }
+    # Get count of open todos
+    open_todo_count = frappe.db.count("ToDo", filters=filters)
     
     return {
-        "total_jobs": len(jobs),
-        "jobs_by_status": jobs_by_status,
-        "status_counts": status_counts
+        "open_todo_count": open_todo_count
     }
 
 @frappe.whitelist(allow_guest=False)
