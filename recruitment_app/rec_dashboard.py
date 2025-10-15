@@ -357,45 +357,73 @@ def create_empty_metrics():
 @frappe.whitelist(allow_guest=False)
 def get_job_openings_with_status(email, company=None):
     """
-    Fetch count of open todos for the given user.
+    Fetch all todos for the given user and return in Job Opening format.
     
     Args:
         email: Created by email (required)
-        company: Filter by reference_type (optional)
+        company: Filter by custom_company (optional)
     
     Returns:
-        dict: Open todo count in same structure as previous Job Opening response
+        dict: Todos formatted like Job Opening response
     """
     if not email:
         frappe.throw(_("Email is required"))
     
-    # Build filters - only get Open status todos
+    # Build filters - get all status todos (removed "Open" filter)
     filters = {
-        "allocated_to": email,
-        "status": "Open"
+        "allocated_to": email
     }
     
-    # If company is provided, use it as reference_type filter
+    # If company is provided, use it as custom_company filter
     if company:
         filters["custom_company"] = company
     
-    # Get count of open todos
-    open_todo_count = frappe.db.count("ToDo", filters=filters)
+    # Fetch all todo data (all statuses)
+    todos = frappe.get_all(
+        "ToDo",
+        filters=filters,
+        fields=["name", "description", "custom_company", "status", "priority", "date", "creation", "allocated_to"],
+        limit=0,
+        order_by="creation desc"
+    )
     
-    # Return response in same structure as previous Job Opening function
-    return {
-        "total_jobs": open_todo_count,
-        "jobs_by_status": {
-            "Open": [],
-            "Closed": [],
-            "Cancelled": []
-        },
-        "status_counts": {
-            "Open": open_todo_count,
-            "Closed": 0,
-            "Cancelled": 0
-        }
+    # Separate todos by status (like original Job Opening function)
+    todos_by_status = {
+        "Open": [],
+        "Closed": [],
+        "Cancelled": []
     }
+    
+    # Format todos and separate by status
+    for todo in todos:
+        formatted_todo = {
+            "name": todo.name,
+            "job_title": todo.description or "No Description",
+            "company": todo.custom_company,
+            "status": todo.status,
+            "creation": todo.creation,
+            "priority": todo.priority,
+            "date": todo.date
+        }
+        
+        status = todo.get("status", "Open")
+        if status not in todos_by_status:
+            todos_by_status[status] = []
+        todos_by_status[status].append(formatted_todo)
+    
+    # Calculate counts for all statuses
+    status_counts = {
+        status: len(todo_list) 
+        for status, todo_list in todos_by_status.items()
+    }
+    
+    return {
+        "total_jobs": len(todos),
+        "jobs_by_status": todos_by_status,
+        "status_counts": status_counts
+    }
+
+
 @frappe.whitelist(allow_guest=False)
 def get_tagged_applicants_by_company(email, company=None):
     """
