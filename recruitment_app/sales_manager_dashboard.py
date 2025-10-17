@@ -140,30 +140,16 @@
 #     elif end_date:
 #         filters["creation"] = ["<=", end_date]
     
-#     # Fetch all leads
+#     # Fetch all leads - only ID and stage
 #     leads = frappe.get_all(
 #         "Lead",
 #         filters=filters,
-#         fields=[
-#             "name",
-#             "lead_owner",
-#             "company_name",
-#             "industry",
-#             "website",
-#             "custom_stage",
-#             "custom_offerings",
-#             "custom_estimated_hiring_",
-#             "custom_average_salary",
-#             "custom_fee",
-#             "custom_deal_value",
-#             "custom_expected_close_date",
-#             "creation"
-#         ],
+#         fields=["name", "custom_stage"],
 #         limit=0,
 #         order_by="creation desc"
 #     )
     
-#     # Group by stage
+#     # Group by stage - only IDs
 #     leads_by_stage = {
 #         "Prospecting": [],
 #         "Onboarded": [],
@@ -173,7 +159,7 @@
 #     for lead in leads:
 #         stage = lead.get("custom_stage", "Prospecting")
 #         if stage in leads_by_stage:
-#             leads_by_stage[stage].append(lead)
+#             leads_by_stage[stage].append(lead.name)  # Only append ID
     
 #     # Calculate counts
 #     stage_counts = {
@@ -615,13 +601,17 @@ def get_lead_metrics(lead_owner=None, start_date=None, end_date=None):
     total_leads = len(leads)
     total_deal_value = sum(float(lead.get("custom_deal_value") or 0) for lead in leads)
     
-    # Count by stage
+    # Count by stage - ALL 7 STAGES
     prospecting_leads = len([l for l in leads if l.get("custom_stage") == "Prospecting"])
-    onboarded_leads = len([l for l in leads if l.get("custom_stage") == "Onboarded"])
+    lead_qualification_leads = len([l for l in leads if l.get("custom_stage") == "Lead Qualification"])
+    needs_analysis_leads = len([l for l in leads if l.get("custom_stage") == "Needs Analysis / Discovery"])
+    presentation_leads = len([l for l in leads if l.get("custom_stage") == "Presentation / Proposal"])
     contract_leads = len([l for l in leads if l.get("custom_stage") == "Contract"])
+    onboarded_leads = len([l for l in leads if l.get("custom_stage") == "Onboarded"])
+    followup_leads = len([l for l in leads if l.get("custom_stage") == "Follow-Up / Relationship Management"])
     
-    # Converted leads = Onboarded + Contract
-    converted_leads = onboarded_leads + contract_leads
+    # Converted leads = Contract + Onboarded (as per your original requirement)
+    converted_leads = contract_leads + onboarded_leads
     opportunities_won = converted_leads  # Same as converted
     
     # Conversion rate
@@ -638,8 +628,12 @@ def get_lead_metrics(lead_owner=None, start_date=None, end_date=None):
         "conversion_rate": conversion_rate,
         "average_deal_size": average_deal_size,
         "prospecting_leads": prospecting_leads,
+        "lead_qualification_leads": lead_qualification_leads,
+        "needs_analysis_leads": needs_analysis_leads,
+        "presentation_leads": presentation_leads,
+        "contract_leads": contract_leads,
         "onboarded_leads": onboarded_leads,
-        "contract_leads": contract_leads
+        "followup_leads": followup_leads
     }
 
 
@@ -680,11 +674,15 @@ def get_leads_by_stage(lead_owner=None, start_date=None, end_date=None):
         order_by="creation desc"
     )
     
-    # Group by stage - only IDs
+    # Group by stage - ALL 7 STAGES
     leads_by_stage = {
         "Prospecting": [],
+        "Lead Qualification": [],
+        "Needs Analysis / Discovery": [],
+        "Presentation / Proposal": [],
+        "Contract": [],
         "Onboarded": [],
-        "Contract": []
+        "Follow-Up / Relationship Management": []
     }
     
     for lead in leads:
@@ -979,15 +977,20 @@ def get_leads_for_period(leads, period_start, period_end):
 
 def create_trend_data_point(label, period_leads):
     """
-    Create a single trend data point with all metrics
+    Create a single trend data point with all metrics for ALL 7 STAGES
     """
     total_deal_value = sum(lead.get("deal_value", 0) for lead in period_leads)
     
+    # Count all 7 stages
     prospecting = len([l for l in period_leads if l.get("stage") == "Prospecting"])
-    onboarded = len([l for l in period_leads if l.get("stage") == "Onboarded"])
+    lead_qualification = len([l for l in period_leads if l.get("stage") == "Lead Qualification"])
+    needs_analysis = len([l for l in period_leads if l.get("stage") == "Needs Analysis / Discovery"])
+    presentation = len([l for l in period_leads if l.get("stage") == "Presentation / Proposal"])
     contract = len([l for l in period_leads if l.get("stage") == "Contract"])
+    onboarded = len([l for l in period_leads if l.get("stage") == "Onboarded"])
+    followup = len([l for l in period_leads if l.get("stage") == "Follow-Up / Relationship Management"])
     
-    converted = onboarded + contract
+    converted = contract + onboarded
     
     return {
         "period": label,
@@ -995,22 +998,31 @@ def create_trend_data_point(label, period_leads):
         "total_deal_value": round(total_deal_value, 2),
         "converted_leads": converted,
         "prospecting": prospecting,
+        "lead_qualification": lead_qualification,
+        "needs_analysis": needs_analysis,
+        "presentation": presentation,
+        "contract": contract,
         "onboarded": onboarded,
-        "contract": contract
+        "followup": followup
     }
 
 
 def calculate_trend_metrics(leads):
     """
-    Calculate summary metrics for trends
+    Calculate summary metrics for trends - ALL 7 STAGES
     """
     total_deal_value = sum(lead.get("deal_value", 0) for lead in leads)
     
+    # Count all 7 stages
     prospecting = len([l for l in leads if l.get("stage") == "Prospecting"])
-    onboarded = len([l for l in leads if l.get("stage") == "Onboarded"])
+    lead_qualification = len([l for l in leads if l.get("stage") == "Lead Qualification"])
+    needs_analysis = len([l for l in leads if l.get("stage") == "Needs Analysis / Discovery"])
+    presentation = len([l for l in leads if l.get("stage") == "Presentation / Proposal"])
     contract = len([l for l in leads if l.get("stage") == "Contract"])
+    onboarded = len([l for l in leads if l.get("stage") == "Onboarded"])
+    followup = len([l for l in leads if l.get("stage") == "Follow-Up / Relationship Management"])
     
-    converted = onboarded + contract
+    converted = contract + onboarded
     conversion_rate = round((converted / len(leads) * 100), 2) if len(leads) > 0 else 0
     
     return {
@@ -1019,8 +1031,12 @@ def calculate_trend_metrics(leads):
         "converted_leads": converted,
         "conversion_rate": conversion_rate,
         "prospecting": prospecting,
+        "lead_qualification": lead_qualification,
+        "needs_analysis": needs_analysis,
+        "presentation": presentation,
+        "contract": contract,
         "onboarded": onboarded,
-        "contract": contract
+        "followup": followup
     }
 
 
