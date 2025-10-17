@@ -64,7 +64,7 @@ def get_lead_metrics(lead_owner=None, start_date=None, end_date=None):
     
     # Fetch all leads with required fields
     leads = frappe.get_all(
-        "CRM Lead",
+        "Lead",
         filters=filters,
         fields=[
             "name",
@@ -141,7 +141,7 @@ def get_leads_by_stage(lead_owner=None, start_date=None, end_date=None):
     
     # Fetch all leads
     leads = frappe.get_all(
-        "CRM Lead",
+        "Lead",
         filters=filters,
         fields=[
             "name",
@@ -250,7 +250,7 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
     
     # Fetch all leads for the date range
     all_leads = frappe.get_all(
-        "CRM Lead",
+        "Lead",
         filters=lead_filters,
         fields=[
             "name",
@@ -511,7 +511,7 @@ def get_all_lead_owners():
     Get list of all unique lead owners for filter dropdown
     """
     lead_owners = frappe.get_all(
-        "CRM Lead",
+        "Lead",
         fields=["lead_owner"],
         distinct=True,
         order_by="lead_owner asc"
