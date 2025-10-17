@@ -90,7 +90,6 @@ def get_interviews_completed(date):
     interviews = frappe.db.sql("""
         SELECT COUNT(*) as count
         FROM `tabInterview`
-        WHERE status = 'Cleared'
         AND DATE(scheduled_on) = %s
     """, (date,), as_dict=True)
     
