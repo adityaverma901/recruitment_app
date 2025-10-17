@@ -1166,7 +1166,6 @@
 #         "lead_owners": owners
 #     }
 
-
 import frappe
 from frappe import _
 from datetime import datetime, timedelta
@@ -1357,10 +1356,6 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
     """
     Calculate trends data for lead dashboard showing lead progress over time
     
-    Two modes:
-    1. If start_date and end_date provided: Use custom date range
-    2. If no dates provided: Use current quarter (default behavior)
-    
     Args:
         lead_owner: Lead Owner email (None or "All" for all leads)
         time_period: "week" | "month" | "quarter"
@@ -1392,30 +1387,20 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
         except ValueError:
             frappe.throw(_("Invalid date format. Use YYYY-MM-DD"))
     else:
-        # Current quarter mode (default)
-        quarter, quarter_start, quarter_end, quarter_months = get_current_quarter_info()
-        range_start = quarter_start
-        range_end = now  # Only till today
-        
+        # Use current date as reference for all time periods
         date_info = {
-            "mode": "quarter",
-            "quarter": quarter,
-            "start_date": range_start.strftime("%Y-%m-%d"),
-            "end_date": quarter_end.strftime("%Y-%m-%d"),
-            "months": quarter_months,
+            "mode": time_period,
             "current_date": now.strftime("%Y-%m-%d")
         }
     
-    # Build filters for leads
-    lead_filters = {
-        "creation": ["between", [range_start.strftime("%Y-%m-%d"), range_end.strftime("%Y-%m-%d")]]
-    }
+    # Build filters for leads - for trends we want ALL leads (no date filter for base data)
+    lead_filters = {}
     
     # Apply lead owner filter if provided
     if lead_owner:
         lead_filters["lead_owner"] = lead_owner
     
-    # Fetch all leads for the date range
+    # Fetch all leads (no date filter for base data)
     all_leads = frappe.get_all(
         "Lead",
         filters=lead_filters,
@@ -1446,9 +1431,9 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
         })
     
     # Calculate trends based on time period
-    trends = calculate_lead_trends(formatted_leads, time_period, range_start, range_end, now)
+    trends = calculate_lead_trends(formatted_leads, time_period, now)
     
-    # Calculate summary metrics
+    # Calculate summary metrics for the entire dataset
     metrics = calculate_trend_metrics(formatted_leads)
     
     return {
@@ -1458,80 +1443,109 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
     }
 
 
-def get_current_quarter_info():
-    """
-    Get current quarter information
-    Returns: (quarter_number, quarter_start_date, quarter_end_date, quarter_months)
-    """
-    now = datetime.now()
-    current_month = now.month
-    
-    # Determine quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
-    quarter = (current_month - 1) // 3 + 1
-    
-    # Calculate quarter start month
-    quarter_start_month = (quarter - 1) * 3 + 1
-    
-    # Create quarter start date (first day of first month)
-    quarter_start = datetime(now.year, quarter_start_month, 1, 0, 0, 0, 0)
-    
-    # Calculate quarter end month
-    quarter_end_month = quarter_start_month + 2
-    
-    # Get last day of quarter end month
-    last_day = calendar.monthrange(now.year, quarter_end_month)[1]
-    quarter_end = datetime(now.year, quarter_end_month, last_day, 23, 59, 59, 999999)
-    
-    # Get quarter month names
-    quarter_months = []
-    for i in range(3):
-        month_num = quarter_start_month + i
-        month_name = datetime(now.year, month_num, 1).strftime("%B")
-        quarter_months.append(month_name)
-    
-    return quarter, quarter_start, quarter_end, quarter_months
-
-
 @frappe.whitelist(allow_guest=False)
-def calculate_lead_trends(leads, time_period, quarter_start, quarter_end, now):
+def calculate_lead_trends(leads, time_period, now):
     """
-    Calculate time-series trends for lead dashboard
-    Shows data for CURRENT QUARTER ONLY with 3 different views
-    All data is calculated ONLY till current date (not future dates)
-    """
-    trends = []
+    Calculate time-series trends for lead dashboard based on selected time period
     
+    Args:
+        leads: List of all leads
+        time_period: "week" | "month" | "quarter"
+        now: Current datetime
+    
+    Returns:
+        List of trend data points
+    """
     frappe.logger().info(f"=== Calculating Lead Trends for {time_period} ===")
-    frappe.logger().info(f"Quarter Start: {quarter_start.strftime('%Y-%m-%d')}")
     frappe.logger().info(f"Today: {now.strftime('%Y-%m-%d')}")
-    frappe.logger().info(f"Total leads in quarter till today: {len(leads)}")
+    frappe.logger().info(f"Total leads: {len(leads)}")
     
     if time_period == "week":
-        # Weekly view - show ALL weeks from quarter start till today
-        trends = calculate_weekly_trends(leads, quarter_start, now)
+        # WEEK: Show metrics for each day of current week
+        trends = calculate_daily_trends_current_week(leads, now)
     
     elif time_period == "month":
-        # Monthly view - show all 3 months of current quarter (till today for current month)
-        trends = calculate_monthly_trends(leads, quarter_start, now)
+        # MONTH: Show metrics for each week of current month
+        trends = calculate_weekly_trends_current_month(leads, now)
     
-    else:  # quarterly
-        # Quarterly view - single data point for entire current quarter (till today)
-        trends = calculate_quarterly_trends(leads, quarter_start, now)
+    else:  # quarter
+        # QUARTER: Show metrics for previous, current, and next month
+        trends = calculate_three_months_trends(leads, now)
     
     frappe.logger().info(f"Generated {len(trends)} trend data points")
     
     return trends
 
 
-def calculate_weekly_trends(leads, quarter_start, now):
-    """Calculate weekly trends for the current quarter"""
+def calculate_daily_trends_current_week(leads, now):
+    """
+    Calculate daily trends for CURRENT WEEK ONLY (Mon-Sun)
+    Shows 7 days: Monday to Sunday of current week
+    """
     trends = []
-    current_date = quarter_start
     
+    # Get current week's Monday
+    current_weekday = now.weekday()  # 0=Monday, 6=Sunday
+    week_start = now - timedelta(days=current_weekday)
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Generate 7 days (Mon-Sun)
+    for day_num in range(7):
+        day_date = week_start + timedelta(days=day_num)
+        day_end = day_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # If day is in future, skip it
+        if day_date.date() > now.date():
+            continue
+        
+        # If it's today, only go till now
+        if day_date.date() == now.date():
+            day_end = now
+        
+        # Day label (e.g., "Mon 14", "Tue 15")
+        day_label = day_date.strftime("%a %d")
+        
+        # Filter leads for this day
+        period_leads = get_leads_for_period(leads, day_date, day_end)
+        
+        trends.append(create_trend_data_point(day_label, period_leads))
+    
+    return trends
+
+
+def calculate_weekly_trends_current_month(leads, now):
+    """
+    Calculate weekly trends for CURRENT MONTH ONLY
+    Shows weeks of current month (Week 1, Week 2, etc.)
+    """
+    trends = []
+    
+    # Get current month start and end
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_day = calendar.monthrange(now.year, now.month)[1]
+    month_end = now.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+    
+    # Calculate weeks in current month
+    current_date = month_start
     week_num = 1
+    
     while current_date <= now:
-        # Calculate week end (6 days later or today if in current week)
-        week_end = current_date + timedelta(days=6)
+        # Week runs from current_date to next Sunday (or month end)
+        week_start = current_date
+        
+        # Find next Sunday or month end
+        days_until_sunday = (6 - current_date.weekday()) % 7
+        if days_until_sunday == 0 and current_date.weekday() != 6:  # If not Sunday
+            days_until_sunday = 7
+        
+        week_end = current_date + timedelta(days=days_until_sunday)
+        week_end = week_end.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # Don't go beyond month end
+        if week_end > month_end:
+            week_end = month_end
+        
+        # Don't go beyond today
         if week_end > now:
             week_end = now
         
@@ -1539,63 +1553,84 @@ def calculate_weekly_trends(leads, quarter_start, now):
         week_label = f"Week {week_num}"
         
         # Filter leads for this week
-        period_leads = get_leads_for_period(leads, current_date, week_end)
+        period_leads = get_leads_for_period(leads, week_start, week_end)
         
         trends.append(create_trend_data_point(week_label, period_leads))
         
         # Move to next week
         current_date = week_end + timedelta(days=1)
+        current_date = current_date.replace(hour=0, minute=0, second=0, microsecond=0)
         week_num += 1
+        
+        # Stop if we've gone beyond current month or today
+        if current_date.month != now.month or current_date > now:
+            break
     
     return trends
 
 
-def calculate_monthly_trends(leads, quarter_start, now):
-    """Calculate monthly trends for the current quarter"""
+def calculate_three_months_trends(leads, now):
+    """
+    Calculate monthly trends for 3 MONTHS:
+    - Previous month
+    - Current month
+    - Next month (if exists, otherwise skip)
+    """
     trends = []
     
-    # Get the 3 months in the quarter
-    for month_offset in range(3):
-        month_start = quarter_start.replace(month=quarter_start.month + month_offset, day=1)
+    current_year = now.year
+    current_month = now.month
+    
+    # Define 3 months: Previous, Current, Next
+    months_to_show = []
+    
+    # Previous month
+    if current_month == 1:
+        prev_month = 12
+        prev_year = current_year - 1
+    else:
+        prev_month = current_month - 1
+        prev_year = current_year
+    months_to_show.append((prev_year, prev_month, "Previous"))
+    
+    # Current month
+    months_to_show.append((current_year, current_month, "Current"))
+    
+    # Next month
+    if current_month == 12:
+        next_month = 1
+        next_year = current_year + 1
+    else:
+        next_month = current_month + 1
+        next_year = current_year
+    months_to_show.append((next_year, next_month, "Next"))
+    
+    # Process each month
+    for year, month, label_type in months_to_show:
+        month_date = datetime(year, month, 1)
+        month_name = month_date.strftime("%B %Y")
         
-        # Calculate month end
-        if month_offset < 2:
-            month_end = month_start.replace(day=1, month=month_start.month + 1) - timedelta(days=1)
-        else:
-            month_end = quarter_start.replace(month=quarter_start.month + 2, 
-                                            day=calendar.monthrange(quarter_start.year, quarter_start.month + 2)[1])
+        # Get start and end of month
+        month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_day = calendar.monthrange(year, month)[1]
+        month_end = month_date.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
         
-        # Don't go beyond today
-        if month_end > now:
+        # For current month, only go till today
+        if year == now.year and month == now.month:
             month_end = now
         
-        # Skip if month start is in future
-        if month_start > now:
-            continue
-            
+        # Skip future months beyond next month
+        if month_start > now and label_type == "Next":
+            # For next month, show it but data will be 0
+            pass
+        
         # Month label
-        month_label = month_start.strftime("%B")
+        month_label = f"{month_name} ({label_type})"
         
         # Filter leads for this month
         period_leads = get_leads_for_period(leads, month_start, month_end)
         
         trends.append(create_trend_data_point(month_label, period_leads))
-    
-    return trends
-
-
-def calculate_quarterly_trends(leads, quarter_start, now):
-    """Calculate single quarterly trend data point"""
-    trends = []
-    
-    # Quarter label
-    quarter_num = (quarter_start.month - 1) // 3 + 1
-    quarter_label = f"Q{quarter_num}"
-    
-    # Filter leads for entire quarter (till today)
-    period_leads = get_leads_for_period(leads, quarter_start, now)
-    
-    trends.append(create_trend_data_point(quarter_label, period_leads))
     
     return trends
 
