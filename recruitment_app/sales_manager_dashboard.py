@@ -69,24 +69,25 @@ def get_lead_metrics(lead_owner=None, start_date=None, end_date=None):
         fields=[
             "name",
             "lead_owner",
-            "organization",
+            "company_name",
             "industry",
-            "stage",
-            "deal_value",
-            "estimated_amount",
-            "creation"
+            "custom_stage",
+            "custom_deal_value",
+            "custom_estimated_hiring_",
+            "creation",
+            "custom_offerings"
         ],
         limit=0
     )
     
     # Calculate metrics
     total_leads = len(leads)
-    total_deal_value = sum(float(lead.get("deal_value") or 0) for lead in leads)
+    total_deal_value = sum(float(lead.get("custom_deal_value") or 0) for lead in leads)
     
     # Count by stage
-    prospecting_leads = len([l for l in leads if l.get("stage") == "Prospecting"])
-    onboarded_leads = len([l for l in leads if l.get("stage") == "Onboarded"])
-    contract_leads = len([l for l in leads if l.get("stage") == "Contract"])
+    prospecting_leads = len([l for l in leads if l.get("custom_stage") == "Prospecting"])
+    onboarded_leads = len([l for l in leads if l.get("custom_stage") == "Onboarded"])
+    contract_leads = len([l for l in leads if l.get("custom_stage") == "Contract"])
     
     # Converted leads = Onboarded + Contract
     converted_leads = onboarded_leads + contract_leads
@@ -146,15 +147,16 @@ def get_leads_by_stage(lead_owner=None, start_date=None, end_date=None):
         fields=[
             "name",
             "lead_owner",
-            "organization",
+            "company_name",
             "industry",
             "website",
-            "stage",
-            "offerings",
-            "estimated_amount",
-            "average_sale_fee",
-            "deal_value",
-            "expected_close_date",
+            "custom_stage",
+            "custom_offerings",
+            "custom_estimated_hiring_",
+            "custom_average_salary",
+            "custom_fee",
+            "custom_deal_value",
+            "custom_expected_close_date",
             "creation"
         ],
         limit=0,
@@ -169,7 +171,7 @@ def get_leads_by_stage(lead_owner=None, start_date=None, end_date=None):
     }
     
     for lead in leads:
-        stage = lead.get("stage", "Prospecting")
+        stage = lead.get("custom_stage", "Prospecting")
         if stage in leads_by_stage:
             leads_by_stage[stage].append(lead)
     
@@ -255,10 +257,10 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
         fields=[
             "name",
             "lead_owner",
-            "organization",
+            "company_name",
             "industry",
-            "stage",
-            "deal_value",
+            "custom_stage",
+            "custom_deal_value",
             "creation"
         ],
         limit=0,
@@ -271,10 +273,10 @@ def get_lead_trends_data(lead_owner=None, time_period="month", start_date=None, 
         formatted_leads.append({
             "id": lead.name,
             "lead_owner": lead.lead_owner,
-            "organization": lead.organization,
+            "company_name": lead.company_name,
             "industry": lead.industry,
-            "stage": lead.stage,
-            "deal_value": float(lead.deal_value or 0),
+            "stage": lead.custom_stage,
+            "deal_value": float(lead.custom_deal_value or 0),
             "creation_date": lead.creation.strftime("%Y-%m-%d") if lead.creation else None
         })
     
