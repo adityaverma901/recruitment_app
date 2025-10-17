@@ -1,3 +1,6 @@
+
+
+
 # import frappe
 # from frappe import _
 # from datetime import datetime, timedelta
@@ -84,13 +87,17 @@
 #     total_leads = len(leads)
 #     total_deal_value = sum(float(lead.get("custom_deal_value") or 0) for lead in leads)
     
-#     # Count by stage
+#     # Count by stage - ALL 7 STAGES
 #     prospecting_leads = len([l for l in leads if l.get("custom_stage") == "Prospecting"])
-#     onboarded_leads = len([l for l in leads if l.get("custom_stage") == "Onboarded"])
+#     lead_qualification_leads = len([l for l in leads if l.get("custom_stage") == "Lead Qualification"])
+#     needs_analysis_leads = len([l for l in leads if l.get("custom_stage") == "Needs Analysis / Discovery"])
+#     presentation_leads = len([l for l in leads if l.get("custom_stage") == "Presentation / Proposal"])
 #     contract_leads = len([l for l in leads if l.get("custom_stage") == "Contract"])
+#     onboarded_leads = len([l for l in leads if l.get("custom_stage") == "Onboarded"])
+#     followup_leads = len([l for l in leads if l.get("custom_stage") == "Follow-Up / Relationship Management"])
     
-#     # Converted leads = Onboarded + Contract
-#     converted_leads = onboarded_leads + contract_leads
+#     # Converted leads = Contract + Onboarded (as per your original requirement)
+#     converted_leads = contract_leads + onboarded_leads
 #     opportunities_won = converted_leads  # Same as converted
     
 #     # Conversion rate
@@ -107,8 +114,12 @@
 #         "conversion_rate": conversion_rate,
 #         "average_deal_size": average_deal_size,
 #         "prospecting_leads": prospecting_leads,
+#         "lead_qualification_leads": lead_qualification_leads,
+#         "needs_analysis_leads": needs_analysis_leads,
+#         "presentation_leads": presentation_leads,
+#         "contract_leads": contract_leads,
 #         "onboarded_leads": onboarded_leads,
-#         "contract_leads": contract_leads
+#         "followup_leads": followup_leads
 #     }
 
 
@@ -149,11 +160,15 @@
 #         order_by="creation desc"
 #     )
     
-#     # Group by stage - only IDs
+#     # Group by stage - ALL 7 STAGES
 #     leads_by_stage = {
 #         "Prospecting": [],
+#         "Lead Qualification": [],
+#         "Needs Analysis / Discovery": [],
+#         "Presentation / Proposal": [],
+#         "Contract": [],
 #         "Onboarded": [],
-#         "Contract": []
+#         "Follow-Up / Relationship Management": []
 #     }
     
 #     for lead in leads:
@@ -448,15 +463,20 @@
 
 # def create_trend_data_point(label, period_leads):
 #     """
-#     Create a single trend data point with all metrics
+#     Create a single trend data point with all metrics for ALL 7 STAGES
 #     """
 #     total_deal_value = sum(lead.get("deal_value", 0) for lead in period_leads)
     
+#     # Count all 7 stages
 #     prospecting = len([l for l in period_leads if l.get("stage") == "Prospecting"])
-#     onboarded = len([l for l in period_leads if l.get("stage") == "Onboarded"])
+#     lead_qualification = len([l for l in period_leads if l.get("stage") == "Lead Qualification"])
+#     needs_analysis = len([l for l in period_leads if l.get("stage") == "Needs Analysis / Discovery"])
+#     presentation = len([l for l in period_leads if l.get("stage") == "Presentation / Proposal"])
 #     contract = len([l for l in period_leads if l.get("stage") == "Contract"])
+#     onboarded = len([l for l in period_leads if l.get("stage") == "Onboarded"])
+#     followup = len([l for l in period_leads if l.get("stage") == "Follow-Up / Relationship Management"])
     
-#     converted = onboarded + contract
+#     converted = contract + onboarded
     
 #     return {
 #         "period": label,
@@ -464,22 +484,31 @@
 #         "total_deal_value": round(total_deal_value, 2),
 #         "converted_leads": converted,
 #         "prospecting": prospecting,
+#         "lead_qualification": lead_qualification,
+#         "needs_analysis": needs_analysis,
+#         "presentation": presentation,
+#         "contract": contract,
 #         "onboarded": onboarded,
-#         "contract": contract
+#         "followup": followup
 #     }
 
 
 # def calculate_trend_metrics(leads):
 #     """
-#     Calculate summary metrics for trends
+#     Calculate summary metrics for trends - ALL 7 STAGES
 #     """
 #     total_deal_value = sum(lead.get("deal_value", 0) for lead in leads)
     
+#     # Count all 7 stages
 #     prospecting = len([l for l in leads if l.get("stage") == "Prospecting"])
-#     onboarded = len([l for l in leads if l.get("stage") == "Onboarded"])
+#     lead_qualification = len([l for l in leads if l.get("stage") == "Lead Qualification"])
+#     needs_analysis = len([l for l in leads if l.get("stage") == "Needs Analysis / Discovery"])
+#     presentation = len([l for l in leads if l.get("stage") == "Presentation / Proposal"])
 #     contract = len([l for l in leads if l.get("stage") == "Contract"])
+#     onboarded = len([l for l in leads if l.get("stage") == "Onboarded"])
+#     followup = len([l for l in leads if l.get("stage") == "Follow-Up / Relationship Management"])
     
-#     converted = onboarded + contract
+#     converted = contract + onboarded
 #     conversion_rate = round((converted / len(leads) * 100), 2) if len(leads) > 0 else 0
     
 #     return {
@@ -488,8 +517,12 @@
 #         "converted_leads": converted,
 #         "conversion_rate": conversion_rate,
 #         "prospecting": prospecting,
+#         "lead_qualification": lead_qualification,
+#         "needs_analysis": needs_analysis,
+#         "presentation": presentation,
+#         "contract": contract,
 #         "onboarded": onboarded,
-#         "contract": contract
+#         "followup": followup
 #     }
 
 
@@ -521,25 +554,23 @@ from datetime import datetime, timedelta
 import calendar
 
 @frappe.whitelist(allow_guest=False)
-def get_lead_dashboard_data(lead_owner=None, time_period="month", start_date=None, end_date=None):
+def get_lead_dashboard_data(lead_owner=None, start_date=None, end_date=None):
     """
-    Fetch all lead dashboard data in a single API call
-    Similar to recruiter dashboard structure
+    Fetch lead dashboard data (WITHOUT trends)
+    Call get_lead_trends_data separately for trends
     
     Args:
         lead_owner: Lead Owner email (defaults to current user, "All" for all leads)
-        time_period: "week" | "month" | "quarter" for trends
         start_date: Custom start date (format: "YYYY-MM-DD") - optional
         end_date: Custom end date (format: "YYYY-MM-DD") - optional
     """
     if not lead_owner or lead_owner == "All":
         lead_owner = None
     
-    # Fetch all required data
+    # Fetch all required data (WITHOUT trends)
     data = {
         'metrics': get_lead_metrics(lead_owner, start_date, end_date),
-        'leads_by_stage': get_leads_by_stage(lead_owner, start_date, end_date),
-        'trends_data': get_lead_trends_data(lead_owner, time_period, start_date, end_date)
+        'leads_by_stage': get_leads_by_stage(lead_owner, start_date, end_date)
     }
     
     return data
