@@ -10,7 +10,20 @@ app_license = "mit"
 
 # required_apps = []
 fixtures = [
-   
+    {
+        "doctype": "Role",
+        "filters": [
+            ["name", "=", "Recruiter"]
+        ]
+    },
+
+    {
+        "doctype": "Custom DocPerm",
+        "filters": [
+            ["role", "=", "Recruiter"]
+        ]
+    },
+  
     {
         "dt": "Client Script",
         "filters": [["module", "=", "Recruitment App"]]
