@@ -35,6 +35,12 @@ fixtures = [
     "Web Form",
     "Role Profile",
     {
+    "doctype": "Notification",
+    "filters": [
+        ["name", "=", "New Job Allocated"]
+    ]
+},
+    {
         "doctype": "DocType",
  "filters": {
             "name": ["in", ["Quotation Item", "Staffing Plan Details"]]
