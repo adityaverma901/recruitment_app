@@ -36,8 +36,9 @@ fixtures = [
     "Role Profile",
     {
         "doctype": "DocType",
-        "filters": {"name": "Quotation Item"}
-    }
+ "filters": {
+            "name": ["in", ["Quotation Item", "Staffing Plan Details"]]
+        }    }
 ]
 doc_events = {
     "Job Applicant": {
