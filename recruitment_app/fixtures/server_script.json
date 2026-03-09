@@ -275,13 +275,13 @@
   "doctype_event": "Before Save",
   "enable_rate_limit": 0,
   "event_frequency": "All",
-  "modified": "2025-10-15 12:05:26.634054",
+  "modified": "2026-02-27 16:24:39.722933",
   "module": "Recruitment App",
   "name": "activity log status job applicant",
   "rate_limit_count": 5,
   "rate_limit_seconds": 86400,
   "reference_doctype": "Job Applicant",
-  "script": "if doc.has_value_changed('status'):\r\n    # Get the old status value\r\n    old_doc = doc.get_doc_before_save()\r\n    old_status = old_doc.status if old_doc else \"New Application\"\r\n    new_status = doc.status\r\n    \r\n    # Create activity log entry\r\n    activity_name = f\"'{old_status}' to '{new_status}'\"\r\n    \r\n    # Append to Activity Log child table (correct field name)\r\n    doc.append('custom_activity_log', {\r\n        'activity_name': activity_name,\r\n        'datetime': frappe.utils.now_datetime()\r\n    })\r\n    \r\n    # Optional: Show a message to the user\r\n    frappe.msgprint(f\"Activity logged: {activity_name}\", alert=True)",
+  "script": "if doc.has_value_changed('status'):\r\n    # Get the old status value\r\n    old_doc = doc.get_doc_before_save()\r\n    old_status = old_doc.status if old_doc else \"New Application\"\r\n    new_status = doc.status\r\n    \r\n    # Create activity log entry\r\n    activity_name = f\"'{old_status}' to '{new_status}'\"\r\n    \r\n    # Append to Activity Log child table (correct field name)\r\n    doc.append('custom_activity_log', {\r\n        'activity_name': activity_name,\r\n        'datetime': frappe.utils.now_datetime(),\r\n                'modified_by1': frappe.session.user   # 👈 ye add kiya\r\n\r\n    })\r\n    \r\n    # Optional: Show a message to the user\r\n    frappe.msgprint(f\"Activity logged: {activity_name}\", alert=True)",
   "script_type": "DocType Event"
  }
 ]
