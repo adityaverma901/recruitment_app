@@ -43,7 +43,7 @@ fixtures = [
     {
         "doctype": "DocType",
  "filters": {
-            "name": ["in", ["Quotation Item", "Staffing Plan Details"]]
+            "name": ["in", ["Quotation Item", "Staffing Plan Detail"]]
         }    }
 ]
 doc_events = {
