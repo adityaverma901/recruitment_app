@@ -1,1 +1,2 @@
 recruitment_app.patches.add_backout_to_job_applicant
+recruitment_app.patches.add_backout_status
