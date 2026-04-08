@@ -4087,12 +4087,12 @@
   "doctype_or_field": "DocField",
   "field_name": "status",
   "is_system_generated": 0,
-  "modified": "2026-04-08 15:06:24.021783",
+  "modified": "2026-02-27 15:06:19.087788",
   "module": null,
   "name": "Job Applicant-status-options",
   "property": "options",
   "property_type": "Text",
   "row_name": null,
-  "value": "Open\nTagged\nShortlisted\nCV Rejected\nAssessment\nAssessment Rejection\nInterview to be Scheduled\nInterview\nL1 Interview Rejection\nL2 Interview Rejection\nOffered\nOffer Drop\nJoined\nBackout"
+  "value": "Open\nTagged\nShortlisted\nCV Rejected\nAssessment\nAssessment Rejection\nInterview to be Scheduled\nInterview\nL1 Interview Rejection\nL2 Interview Rejection\nOffered\nOffer Drop\nJoined"
  }
 ]
