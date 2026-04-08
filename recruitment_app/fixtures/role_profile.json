@@ -7,12 +7,21 @@
   "role_profile": "Inventory",
   "roles": [
    {
+    "parent": "Inventory",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Stock User"
    },
    {
+    "parent": "Inventory",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Stock Manager"
    },
    {
+    "parent": "Inventory",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Item Manager"
    }
   ]
@@ -25,12 +34,21 @@
   "role_profile": "Manufacturing",
   "roles": [
    {
+    "parent": "Manufacturing",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Stock User"
    },
    {
+    "parent": "Manufacturing",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Manufacturing User"
    },
    {
+    "parent": "Manufacturing",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Manufacturing Manager"
    }
   ]
@@ -43,9 +61,15 @@
   "role_profile": "Accounts",
   "roles": [
    {
+    "parent": "Accounts",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Accounts User"
    },
    {
+    "parent": "Accounts",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Accounts Manager"
    }
   ]
@@ -58,12 +82,21 @@
   "role_profile": "Sales",
   "roles": [
    {
+    "parent": "Sales",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Sales User"
    },
    {
+    "parent": "Sales",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Stock User"
    },
    {
+    "parent": "Sales",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Sales Manager"
    }
   ]
@@ -76,15 +109,27 @@
   "role_profile": "Purchase",
   "roles": [
    {
+    "parent": "Purchase",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Item Manager"
    },
    {
+    "parent": "Purchase",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Stock User"
    },
    {
+    "parent": "Purchase",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Purchase User"
    },
    {
+    "parent": "Purchase",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Purchase Manager"
    }
   ]
@@ -97,6 +142,9 @@
   "role_profile": "Interviewer",
   "roles": [
    {
+    "parent": "Interviewer",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Interviewer"
    }
   ]
@@ -109,15 +157,27 @@
   "role_profile": "HR",
   "roles": [
    {
+    "parent": "HR",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "HR User"
    },
    {
+    "parent": "HR",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "HR Manager"
    },
    {
+    "parent": "HR",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Leave Approver"
    },
    {
+    "parent": "HR",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Expense Approver"
    }
   ]
@@ -138,12 +198,21 @@
   "role_profile": "Customer Relationship Executive",
   "roles": [
    {
+    "parent": "Customer Relationship Executive",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Employee"
    },
    {
+    "parent": "Customer Relationship Executive",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "System Manager"
    },
    {
+    "parent": "Customer Relationship Executive",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Sales User"
    }
   ]
@@ -156,12 +225,21 @@
   "role_profile": "Customer Relationship Manager",
   "roles": [
    {
+    "parent": "Customer Relationship Manager",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Employee"
    },
    {
+    "parent": "Customer Relationship Manager",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "Sales Manager"
    },
    {
+    "parent": "Customer Relationship Manager",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
     "role": "System Manager"
    }
   ]

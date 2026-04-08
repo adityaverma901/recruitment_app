@@ -39,7 +39,7 @@ fixtures = [
     "filters": [
         ["name", "=", "New Job Allocated"]
     ]
-},
+    },
     {
         "doctype": "DocType",
  "filters": {
